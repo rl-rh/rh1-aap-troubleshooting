@@ -1,0 +1,43 @@
+Module 1 (5 minutes)
+	Introduction & Overview
+		Intros
+		Operator manager logs
+	Module 8 Engaging with support
+		AAP specific must-gather
+			Namespace wide must-gather
+Installing 2.5 operator
+	Wrong storage class
+		No default SC defined
+		Hub has wrong storage class defined
+	Low quotas set on namespace
+	Controller auto_upgrade set to false after deployment
+	ImagePullBackoff error
+		Using another repository (quay with custom ees)
+		Global pull secret from registry.redhat.io
+Configuring
+	Gateway reset admin password
+		Unable to login with admin secret in UI
+Troubleshooting
+	Database service gets deleted and aap unable to connect to dns name
+	Scheduling container on openshift node fails
+		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory)
+		Update CRD to schedule somewhere else
+	Custom route not working
+		Add CSRF blah blah
+	Adding environment variables to task/web pods
+		Proxy variables not showing up in deployment
+		SMTP service accessible through specific proxy
+	Container group unable to pull EE from private repo
+	ALIA chat icon not showing up
+		Just want to look at pods and logs for api/chat/etc
+	Hub unable to sync collections
+		Hub pvc too small
+		Or requests/limits too small on content pod
+	2.4 to 2.5/6 upgrade issues
+Performance/Usage
+	HTTP 503 error
+		Launch a bunch of requests to prov callback
+		Increase web pod replicas or disable operator and increase deployments
+	EDA activations stuck in pending state
+		EDA scheduler set to 0
+

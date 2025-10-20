@@ -1,0 +1,20 @@
+---
+- name: install aap operator
+  hosts: localhost
+  tasks:
+
+    - name: Install subscription
+      kubernetes.core.k8s:
+        state: patched
+        definition:
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          metadata:
+            name: ansible-automation-platform
+            namespace: "{{ aap_ns }}"
+          spec:
+            channel: 'stable-2.5'
+            installPlanApproval: Automatic
+            name: ansible-automation-platform-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace

@@ -1,0 +1,26 @@
+---
+- name: configure aap custom resource
+  hosts: localhost
+  tasks:
+
+    - name: create operatorgroup
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: aap.ansible.com/v1alpha1
+          kind: AnsibleAutomationPlatform
+          metadata:
+            name: aap
+            namespace: "{{ aap_ns }}"
+          spec:
+            route_tls_termination_mechanism: Edge
+            no_log: true
+            redis_mode: standalone
+            api:
+              log_level: INFO
+              replicas: 1
+            database:
+              postgres_data_volume_init: false
+              idle_disabled: false
+            controller:
+              auto_upgrade: false
