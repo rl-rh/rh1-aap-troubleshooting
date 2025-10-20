@@ -22,7 +22,7 @@
           apiVersion: operators.coreos.com/v1
           kind: OperatorGroup
           metadata:
-            name: "{{ subscription_name }}"
+            name: "{{ subscription_name }}-operator-group"
             namespace: "{{ aap_ns }}"
           spec:
             targetNamespaces:
@@ -38,8 +38,6 @@
             generation: 1
             name: "{{ subscription_name }}"
             namespace: "{{ aap_ns }}"
-            labels:
-              operators.coreos.com/ansible-automation-platform-operator.aap1: ''
           spec:
             channel: stable-2.5
             installPlanApproval: Manual
