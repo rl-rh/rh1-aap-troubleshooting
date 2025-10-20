@@ -6,17 +6,17 @@ Module 1 (5 minutes)
 		AAP specific must-gather
 			Namespace wide must-gather
 Installing 2.5 operator
-	Wrong storage class
-		No default SC defined
+	Wrong storage class- done
+		No default SC defined- done
 		Hub has wrong storage class defined
-	Low quotas set on namespace
-	Controller auto_upgrade set to false after deployment
+	Low quotas set on namespace- done
+	Controller auto_upgrade set to false after deployment - done.  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. 
 	ImagePullBackoff error
-		Using another repository (quay with custom ees)
+		Using another repository (quay with custom ees) - need EE on a job template with no secret for the repo
 		Global pull secret from registry.redhat.io
 Configuring
 	Gateway reset admin password
-		Unable to login with admin secret in UI
+		Unable to login with admin secret in UI - done
 Troubleshooting
 	Database service gets deleted and aap unable to connect to dns name
 	Scheduling container on openshift node fails
