@@ -1,7 +1,0 @@
-get oc login command
-#Install operator
-ansible-playbook -e aap_ns=aap1 install-operator.yml
-#Configure AAP - hub pods stuck in pending, SC issue
-ansible-playbook -e aap_ns=aap1 configure-aap-cr.yml
-#get controller to try to autoupdate
-ansible-playbook -e aap_ns=aap1 update-aap-sub.yml

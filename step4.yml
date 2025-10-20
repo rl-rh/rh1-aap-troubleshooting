@@ -1,7 +1,20 @@
 ---
-- name: install aap operator
+- name: configure aap custom resource
   hosts: localhost
   tasks:
+
+    - name: modify controller cr
+      kubernetes.core.k8s:
+        state: patched
+        definition:
+          apiVersion: automationcontroller.ansible.com/v1beta1
+          kind: AutomationController
+          metadata:
+            name: aap-controller
+            namespace: "{{ aap_ns }}"
+            patch:
+              spec:
+                auto_upgrade: true
 
     - name: Install subscription
       kubernetes.core.k8s:
@@ -17,4 +30,4 @@
             installPlanApproval: Automatic
             name: ansible-automation-platform-operator
             source: redhat-operators
-            sourceNamespace: openshift-marketplace
+            sourceNamespace: openshift-marketplace                
