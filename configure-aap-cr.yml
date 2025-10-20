@@ -14,7 +14,7 @@
             namespace: "{{ aap_ns }}"
           spec:
             route_tls_termination_mechanism: Edge
-            no_log: true
+            no_log: false
             redis_mode: standalone
             api:
               log_level: INFO
