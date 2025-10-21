@@ -1,0 +1,35 @@
+---
+- name: create route
+  hosts: localhost
+  tasks:
+
+    - name: Get Cluster Base Domain
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: DNS
+        name: cluster
+      register: dns_info
+      
+    - name: Set cluster_base_domain fact
+      ansible.builtin.set_fact:
+        cluster_base_domain: "{{ dns_info.resources[0].spec.baseDomain }}"
+
+    - name: Create custom route 'aap-short'
+      kubernetes.core.k8s:
+        api_version: route.openshift.io/v1
+        kind: Route
+        name: aap-short
+        namespace: "{{ install_namespace }}"
+        state: present
+        definition:
+          spec:
+            host: "aap.apps.{{ cluster_base_domain }}"
+            to:
+              kind: Service
+              name: aap # The target Service name
+              weight: 100
+            port:
+              targetPort: http
+            tls:
+              termination: edge
+              insecureEdgeTerminationPolicy: Redirect
