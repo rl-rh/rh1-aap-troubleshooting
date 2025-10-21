@@ -14,5 +14,5 @@
             namespace: "{{ install_namespace }}"
             patch:
               spec:
-                  node_selector: |
-                    kubernetes.io/os: not_linux
+                node_selector: |
+                  kubernetes.io/os: not_linux
