@@ -1,0 +1,3 @@
+{% for item in install_operator_labels | default([]) %}
+{{ item.key }}: '{{ item.value }}'
+{% endfor %}

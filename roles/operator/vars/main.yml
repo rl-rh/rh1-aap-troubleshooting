@@ -1,0 +1,7 @@
+---
+
+install_operator_name: "ansible-automation-platform-operator"
+
+install_operator_labels:
+  - key: "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace }}"
+    value: ''

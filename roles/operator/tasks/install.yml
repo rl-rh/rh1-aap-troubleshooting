@@ -1,0 +1,85 @@
+---
+
+- name: install | Read in role variables
+  ansible.builtin.include_vars:
+    file: vars/main.yml
+    hash_behaviour: replace
+
+- name: install | Create target namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ install_namespace }}"
+        labels:
+          name: "{{ install_namespace }}"
+
+- name: install | Create OperatorGroup for target namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: aap-operator-group
+        namespace: "{{ install_namespace }}"
+      spec:
+        targetNamespaces:
+          - "{{ install_namespace }}"
+
+- name: install | Create OLM Subscription to install the operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: "{{ install_operator_name }}"
+        namespace: "{{ install_namespace }}"
+        labels: "{{ lookup('ansible.builtin.template', '../templates/operator-labels.j2') | from_yaml }}"
+      spec:
+        name: "{{ install_operator_name }}"
+        source: "{{ install_catalog_source }}"
+        sourceNamespace: "{{ install_source_namespace }}"
+        installPlanApproval: "{{ install_plan_approval }}"
+        channel: "{{ install_channel }}"
+        startingCSV: "{{ install_starting_csv }}"
+
+- name: install | Auto-approve manual install plan
+  when: install_plan_approval | lower == 'manual'
+  block:
+    - name: install | Find all install plans
+      register: _install_plans
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        namespace: "{{ install_namespace }}"
+
+    - name: install | Approve all install plans
+      loop: "{{ _install_plans.resources | default([]) }}"
+      when: item.status.phase == 'RequiresApproval'
+      kubernetes.core.k8s:
+        state: present
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ install_namespace }}"
+        definition:
+          spec:
+            approved: true
+
+- name: install | Wait for Operator installation to complete
+  register: _aap_operator_details
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
+  until:
+    - _aap_operator_details.resources | length > 0 and
+      _aap_operator_details.resources[0].status.phase == "Succeeded"
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ install_namespace }}"
+    label_selectors:
+      - "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace }}"
