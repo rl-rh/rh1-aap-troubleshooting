@@ -7,12 +7,13 @@
       kubernetes.core.k8s:
         state: patched
         definition:
-          apiVersion: automationcontroller.ansible.com/v1beta1
-          kind: AutomationController
+          apiVersion: aap.ansible.com/v1alpha1
+          kind: AnsibleAutomationPlatform
           metadata:
-            name: aap-controller
+            name: aap
             namespace: "{{ install_namespace }}"
             patch:
               spec:
-                node_selector: |
-                  kubernetes.io/os: not_linux
+                controller:
+                  node_selector: |
+                    kubernetes.io/os: not_linux
