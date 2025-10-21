@@ -3,20 +3,20 @@
   hosts: localhost
   tasks:
 
-    - name: modify controller cr
-      kubernetes.core.k8s:
-        state: patched
-        definition:
-          apiVersion: automationcontroller.ansible.com/v1beta1
-          kind: AutomationController
-          metadata:
-            name: aap-controller
-            namespace: "{{ install_namespace }}"
-            patch:
-              spec:
-                auto_upgrade: true
+    # - name: modify controller cr
+    #   kubernetes.core.k8s:
+    #     state: patched
+    #     definition:
+    #       apiVersion: automationcontroller.ansible.com/v1beta1
+    #       kind: AutomationController
+    #       metadata:
+    #         name: aap-controller
+    #         namespace: "{{ install_namespace }}"
+    #         patch:
+    #           spec:
+    #             auto_upgrade: true
 
-    - name: Install subscription
+    - name: Update AAP to latest operator
       kubernetes.core.k8s:
         state: patched
         definition:
