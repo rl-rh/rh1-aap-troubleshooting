@@ -16,11 +16,26 @@
             route_tls_termination_mechanism: Edge
             no_log: true
             redis_mode: standalone
+            redis:
+              resource_requirements:
+                limits:
+                  cpu: 500m
+                  memory: 2Gi
+                requests:
+                  cpu: 250m
+                  memory: 1Gi
             api:
               log_level: INFO
               replicas: 1
             database:
               postgres_data_volume_init: false
               idle_disabled: false
+              resource_requirements:
+                limits:
+                  cpu: 1000m
+                  memory: 100Mi
+                requests:
+                  cpu: 500m
+                  memory: 50Mi
             controller:
               auto_upgrade: false
