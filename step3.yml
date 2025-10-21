@@ -3,7 +3,7 @@
   hosts: localhost
   tasks:
 
-    - name: create operatorgroup
+    - name: Create AAP CR
       kubernetes.core.k8s:
         state: present
         definition:
@@ -11,7 +11,7 @@
           kind: AnsibleAutomationPlatform
           metadata:
             name: aap
-            namespace: "{{ aap_ns }}"
+            namespace: "{{ install_namespace }}"
           spec:
             route_tls_termination_mechanism: Edge
             no_log: true

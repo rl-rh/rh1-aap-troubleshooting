@@ -7,7 +7,7 @@
     kubernetes.core.k8s_info:
       api_version: v1
       kind: Pod
-      namespace: "{{ aap_ns }}"
+      namespace: "{{ install_namespace }}"
       label_selectors: app.kubernetes.io/component=aap-gateway
     register: gateway_pods
 
@@ -34,7 +34,7 @@
 
   - name: Execute password change command with raw Python (Avoids getpass)
     kubernetes.core.k8s_exec:
-      namespace: "{{ aap_ns }}"
+      namespace: "{{ install_namespace }}"
       pod: "{{ gateway_pod_name }}"
       container: "api"
       command: >-
@@ -45,3 +45,17 @@
   - name: Display command output (check for 'None' or success)
     ansible.builtin.debug:
       var: command_output
+
+  - name: Delete the aap-postgres-15 Route
+    kubernetes.core.k8s:
+      api_version: v1 
+      kind: Service
+      name: aap-postgres-15
+      namespace: "{{ install_namespace }}" 
+      state: absent
+    register: route_delete_status
+
+  - name: Verify Route Deletion Status
+    ansible.builtin.debug:
+      msg: "Route deleted successfully."
+    when: route_delete_status.deleted is defined and route_delete_status.deleted

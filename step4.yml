@@ -11,7 +11,7 @@
           kind: AutomationController
           metadata:
             name: aap-controller
-            namespace: "{{ aap_ns }}"
+            namespace: "{{ install_namespace }}"
             patch:
               spec:
                 auto_upgrade: true
@@ -24,7 +24,7 @@
           kind: Subscription
           metadata:
             name: ansible-automation-platform
-            namespace: "{{ aap_ns }}"
+            namespace: "{{ install_namespace }}"
           spec:
             channel: 'stable-2.5'
             installPlanApproval: Automatic

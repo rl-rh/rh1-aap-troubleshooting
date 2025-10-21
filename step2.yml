@@ -1,118 +1,230 @@
 ---
 - name: install aap operator
   hosts: localhost
-  vars:
-    # Set a reasonable timeout for the wait
-    wait_minutes: 5
-    wait_delay_seconds: 15
-    subscription_name: ansible-automation-platform-operator
-
+  # vars:
+  #   # Set a reasonable timeout for the wait
+  #   wait_minutes: 5
+  #   wait_delay_seconds: 15
+  #   subscription_name: ansible-automation-platform-operator
   tasks:
 
-    - name: create namespace
-      kubernetes.core.k8s:
-        name: "{{ aap_ns }}"
-        kind: Namespace
-        state: present
+    - name: Install Ansible Automation Platform operator
+      vars:
+          install_channel: "stable-2.5"
+          install_starting_csv: "aap-operator.v2.5.0-0.1755835086"
+          install_plan_approval: "Manual"
+          install_namespace: "aap2"
+      ansible.builtin.import_role:
+          name: operator
 
-    - name: create operatorgroup
-      kubernetes.core.k8s:
-        state: present
-        definition: 
-          apiVersion: operators.coreos.com/v1
-          kind: OperatorGroup
-          metadata:
-            name: "{{ subscription_name }}-operator-group"
-            namespace: "{{ aap_ns }}"
-          spec:
-            targetNamespaces:
-              - "{{ aap_ns }}"
+    # - name: create namespace
+    #   kubernetes.core.k8s:
+    #     name: "{{ install_namespace }}"
+    #     kind: Namespace
+    #     state: present
 
-    - name: Install subscription
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: operators.coreos.com/v1alpha1
-          kind: Subscription
-          metadata:
-            generation: 1
-            name: "{{ subscription_name }}"
-            namespace: "{{ aap_ns }}"
-          spec:
-            channel: stable-2.5
-            installPlanApproval: Manual
-            name: ansible-automation-platform-operator
-            source: redhat-operators
-            sourceNamespace: openshift-marketplace
-            startingCSV: aap-operator.v2.5.0-0.1728520175
+    # - name: create operatorgroup
+    # - name: create namespace
+    #   kubernetes.core.k8s:
+    #     name: "{{ install_namespace }}"
+    #     kind: Namespace
+    #     state: present
 
-    - name: Get list of InstallPlans (Wait up to {{ wait_minutes }}m)
-      kubernetes.core.k8s_info:
-        api_version: operators.coreos.com/v1alpha1
-        kind: InstallPlan
-        namespace: "{{ aap_ns }}"
-      register: install_plans_list
-      until: install_plans_list.resources | length > 0
-      # FIX: Use parentheses to calculate division first, then convert the result to an integer
-      retries: "{{ ((wait_minutes * 60) / wait_delay_seconds) | int }}"
-      delay: "{{ wait_delay_seconds }}"
-      failed_when: install_plans_list.resources | length == 0
+    # - name: create operatorgroup
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition: 
+    #       apiVersion: operators.coreos.com/v1
+    #       kind: OperatorGroup
+    #       metadata:
+    #         name: "{{ subscription_name }}-operator-group"
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         targetNamespaces:
+    #           - "{{ install_namespace }}"
 
-    - name: Use OC to find the InstallPlan name for manual approval
-      ansible.builtin.shell:
-        # Use the shell module to enable pipes and shell built-ins
-        cmd: "oc get installplan -n {{ aap_ns }} -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers | grep 'RequiresApproval' | awk '{print $1}'"
-      register: ip_cmd_output
-      changed_when: false
-      # Check for failure: non-zero exit code OR if the output is empty (meaning no pending plan was found)
-      failed_when: ip_cmd_output.rc != 0 and 'No resources found' not in ip_cmd_output.stderr
+    # - name: Install subscription
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: operators.coreos.com/v1alpha1
+    #       kind: Subscription
+    #       metadata:
+    #         generation: 1
+    #         name: "{{ subscription_name }}"
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         channel: stable-2.5
+    #         installPlanApproval: Manual
+    #         name: ansible-automation-platform-operator
+    #         source: redhat-operators
+    #         sourceNamespace: openshift-marketplace
+    #         startingCSV: aap-operator.v2.5.0-0.1728520175
 
-    - name: Set final clean variable from command output
-      ansible.builtin.set_fact:
-        # The output is now guaranteed to be clean by the shell tools
-        install_plan_name_final: "{{ ip_cmd_output.stdout | default('') | trim }}"
+    # - name: Get list of InstallPlans (Wait up to {{ wait_minutes }}m)
+    #   kubernetes.core.k8s_info:
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: InstallPlan
+    #     namespace: "{{ install_namespace }}"
+    #   register: install_plans_list
+    #   until: install_plans_list.resources | length > 0
+    #   # FIX: Use parentheses to calculate division first, then convert the result to an integer
+    #   retries: "{{ ((wait_minutes * 60) / wait_delay_seconds) | int }}"
+    #   delay: "{{ wait_delay_seconds }}"
+    #   failed_when: install_plans_list.resources | length == 0
 
-    - name: Verify extracted name and proceed to approve
-      ansible.builtin.debug:
-        msg: "FINAL CLEAN NAME: '{{ install_plan_name_final }}'. Proceeding to approve."
-      when: install_plan_name_final is defined and install_plan_name_final | length > 0
+    # - name: Use OC to find the InstallPlan name for manual approval
+    #   ansible.builtin.shell:
+    #     # Use the shell module to enable pipes and shell built-ins
+    #     cmd: "oc get installplan -n {{ install_namespace }} -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers | grep 'RequiresApproval' | awk '{print $1}'"
+    #   register: ip_cmd_output
+    #   changed_when: false
+    #   # Check for failure: non-zero exit code OR if the output is empty (meaning no pending plan was found)
+    #   failed_when: ip_cmd_output.rc != 0 and 'No resources found' not in ip_cmd_output.stderr
 
-    - name: Approve the identified InstallPlan using kubernetes.core
-      kubernetes.core.k8s:
-        state: patched
-        api_version: operators.coreos.com/v1alpha1
-        kind: InstallPlan
-        # Use the clean, shell-extracted variable for the name
-        name: "{{ install_plan_name_final }}" 
-        namespace: "{{ aap_ns }}"
-        # patch_type: merge
-        definition:
-          spec:
-            approved: true
-      # Only run this task if the shell extraction was successful and found a name
-      when: install_plan_name_final is defined and install_plan_name_final | length > 0      
+    # - name: Set final clean variable from command output
+    #   ansible.builtin.set_fact:
+    #     # The output is now guaranteed to be clean by the shell tools
+    #     install_plan_name_final: "{{ ip_cmd_output.stdout | default('') | trim }}"
 
-    - name: Wait for Subscription to reach Succeeded status (up to 10m)
-      kubernetes.core.k8s_info:
-        api_version: operators.coreos.com/v1alpha1
-        kind: Subscription
-        # Use the name of the Subscription resource (e.g., ansible-automation-platform)
-        name: "{{ subscription_name }}" 
-        namespace: "{{ aap_ns }}"
-      register: subscription_status
-      # Set a total timeout (10 minutes)
-      retries: 40
-      delay: 15
-      # Condition: Loop until the status array contains a condition 
-      # with type 'Installed' and status 'True'
-      until: 
-        subscription_status.resources | length > 0 and 
-        subscription_status.resources[0].status.conditions | 
-        json_query("[?type=='Installed' && status=='True']") | length > 0
+    # - name: Verify extracted name and proceed to approve
+    #   ansible.builtin.debug:
+    #     msg: "FINAL CLEAN NAME: '{{ install_plan_name_final }}'. Proceeding to approve."
+    #   when: install_plan_name_final is defined and install_plan_name_final | length > 0
 
-    - name: Subscription Status Check
-      ansible.builtin.debug:
-        msg: "Subscription {{ subscription_name }} is now successfully installed."
+    # - name: Approve the identified InstallPlan using kubernetes.core
+    #   kubernetes.core.k8s:
+    #     state: patched
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: InstallPlan
+    #     # Use the clean, shell-extracted variable for the name
+    #     name: "{{ install_plan_name_final }}" 
+    #     namespace: "{{ install_namespace }}"
+    #     # patch_type: merge
+    #     definition:
+    #       spec:
+    #         approved: true
+    #   # Only run this task if the shell extraction was successful and found a name
+    #   when: install_plan_name_final is defined and install_plan_name_final | length > 0      
+
+    # - name: Wait for Subscription to reach Succeeded status (up to 10m)
+    #   kubernetes.core.k8s_info:
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: Subscription
+    #     # Use the name of the Subscription resource (e.g., ansible-automation-platform)
+    #     name: "{{ subscription_name }}" 
+    #     namespace: "{{ install_namespace }}"
+    #   register: subscription_status
+    #   # Set a total timeout (10 minutes)
+    #   retries: 40
+    #   delay: 15
+    #   # Condition: Loop until the status array contains a condition 
+    #   # with type 'Installed' and status 'True'
+    #   until: 
+    #     subscription_status.resources | length > 0 and 
+    #     subscription_status.resources[0].status.conditions | 
+    #     json_query("[?type=='Installed' && status=='True']") | length > 0
+
+    # - name: Subscription Status Check
+    #   ansible.builtin.debug:
+    #     msg: "Subscription {{ subscription_name }} is now successfully installed."
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition: 
+    #       apiVersion: operators.coreos.com/v1
+    #       kind: OperatorGroup
+    #       metadata:
+    #         name: "{{ subscription_name }}-operator-group"
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         targetNamespaces:
+    #           - "{{ install_namespace }}"
+
+    # - name: Install subscription
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: operators.coreos.com/v1alpha1
+    #       kind: Subscription
+    #       metadata:
+    #         generation: 1
+    #         name: "{{ subscription_name }}"
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         channel: stable-2.5
+    #         installPlanApproval: Manual
+    #         name: ansible-automation-platform-operator
+    #         source: redhat-operators
+    #         sourceNamespace: openshift-marketplace
+    #         startingCSV: aap-operator.v2.5.0-0.1728520175
+
+    # - name: Get list of InstallPlans (Wait up to {{ wait_minutes }}m)
+    #   kubernetes.core.k8s_info:
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: InstallPlan
+    #     namespace: "{{ install_namespace }}"
+    #   register: install_plans_list
+    #   until: install_plans_list.resources | length > 0
+    #   # FIX: Use parentheses to calculate division first, then convert the result to an integer
+    #   retries: "{{ ((wait_minutes * 60) / wait_delay_seconds) | int }}"
+    #   delay: "{{ wait_delay_seconds }}"
+    #   failed_when: install_plans_list.resources | length == 0
+
+    # - name: Use OC to find the InstallPlan name for manual approval
+    #   ansible.builtin.shell:
+    #     # Use the shell module to enable pipes and shell built-ins
+    #     cmd: "oc get installplan -n {{ install_namespace }} -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers | grep 'RequiresApproval' | awk '{print $1}'"
+    #   register: ip_cmd_output
+    #   changed_when: false
+    #   # Check for failure: non-zero exit code OR if the output is empty (meaning no pending plan was found)
+    #   failed_when: ip_cmd_output.rc != 0 and 'No resources found' not in ip_cmd_output.stderr
+
+    # - name: Set final clean variable from command output
+    #   ansible.builtin.set_fact:
+    #     # The output is now guaranteed to be clean by the shell tools
+    #     install_plan_name_final: "{{ ip_cmd_output.stdout | default('') | trim }}"
+
+    # - name: Verify extracted name and proceed to approve
+    #   ansible.builtin.debug:
+    #     msg: "FINAL CLEAN NAME: '{{ install_plan_name_final }}'. Proceeding to approve."
+    #   when: install_plan_name_final is defined and install_plan_name_final | length > 0
+
+    # - name: Approve the identified InstallPlan using kubernetes.core
+    #   kubernetes.core.k8s:
+    #     state: patched
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: InstallPlan
+    #     # Use the clean, shell-extracted variable for the name
+    #     name: "{{ install_plan_name_final }}" 
+    #     namespace: "{{ install_namespace }}"
+    #     # patch_type: merge
+    #     definition:
+    #       spec:
+    #         approved: true
+    #   # Only run this task if the shell extraction was successful and found a name
+    #   when: install_plan_name_final is defined and install_plan_name_final | length > 0      
+
+    # - name: Wait for Subscription to reach Succeeded status (up to 10m)
+    #   kubernetes.core.k8s_info:
+    #     api_version: operators.coreos.com/v1alpha1
+    #     kind: Subscription
+    #     # Use the name of the Subscription resource (e.g., ansible-automation-platform)
+    #     name: "{{ subscription_name }}" 
+    #     namespace: "{{ install_namespace }}"
+    #   register: subscription_status
+    #   # Set a total timeout (10 minutes)
+    #   retries: 40
+    #   delay: 15
+    #   # Condition: Loop until the status array contains a condition 
+    #   # with type 'Installed' and status 'True'
+    #   until: 
+    #     subscription_status.resources | length > 0 and 
+    #     subscription_status.resources[0].status.conditions | 
+    #     json_query("[?type=='Installed' && status=='True']") | length > 0
+
+    # - name: Subscription Status Check
+    #   ansible.builtin.debug:
+    #     msg: "Subscription {{ subscription_name }} is now successfully installed."
 
     - name: modify namespace
       kubernetes.core.k8s:
@@ -121,8 +233,8 @@
           apiVersion: v1
           kind: ResourceQuota
           metadata:
-            name: "{{ aap_ns }}-quota"
-            namespace: "{{ aap_ns }}"
+            name: "{{ install_namespace }}-quota"
+            namespace: "{{ install_namespace }}"
           spec:
             hard:
               requests.cpu: "1" 
