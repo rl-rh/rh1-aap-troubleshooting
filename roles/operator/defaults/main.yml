@@ -1,0 +1,17 @@
+---
+
+install_namespace: "aap"
+
+install_channel: "stable-2.5"
+
+install_catalog_source: "redhat-operators"
+
+install_starting_csv: "aap-operator.v2.5.0-0.1727240614"
+
+install_source_namespace: "openshift-marketplace"
+
+install_plan_approval: "Automatic"
+
+install_wait_retries: 5
+
+install_wait_delay: 30
