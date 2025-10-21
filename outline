@@ -5,24 +5,25 @@ Module 1 (5 minutes)
 	Module 8 Engaging with support
 		AAP specific must-gather
 			Namespace wide must-gather
+		Enabling logging
 Installing 2.5 operator
-	Wrong storage class- done
-		No default SC defined- done
+	Wrong storage class- Step 2
+		No default SC defined- 
 		Hub has wrong storage class defined
-	Low quotas set on namespace- done
-	Controller auto_upgrade set to false after deployment - done.  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. 
+	Low quotas set on namespace- set in step 2. Wont notice until step 3
+	Controller auto_upgrade set to false after deployment - configured in step 3, wont notice until step 4  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. 
 	ImagePullBackoff error
 		Using another repository (quay with custom ees) - need EE on a job template with no secret for the repo
 		Global pull secret from registry.redhat.io
 Configuring
-	Gateway reset admin password
+	Gateway reset admin password. step 5
 		Unable to login with admin secret in UI - done
 Troubleshooting
-	Database service gets deleted and aap unable to connect to dns name
-	Scheduling container on openshift node fails
+	Database service gets deleted and aap unable to connect to dns name - step 5
+	Scheduling container on openshift node fails - step 6
 		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory)
 		Update CRD to schedule somewhere else
-	Custom route not working
+	Custom route not working - done step 7
 		Add CSRF blah blah
 	Adding environment variables to task/web pods
 		Proxy variables not showing up in deployment
