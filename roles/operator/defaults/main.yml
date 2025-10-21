@@ -15,3 +15,5 @@ install_plan_approval: "Automatic"
 install_wait_retries: 5
 
 install_wait_delay: 30
+
+install_wait_minutes: 5

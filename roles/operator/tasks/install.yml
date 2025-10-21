@@ -56,6 +56,11 @@
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
         namespace: "{{ install_namespace }}"
+      until: _install_plans.resources | length > 0
+      # FIX: Use parentheses to calculate division first, then convert the result to an integer
+      retries: "{{ ((install_wait_minutes * 60) / install_wait_delay) | int }}"
+      delay: "{{ install_wait_delay }}"
+      failed_when: _install_plans.resources | length == 0        
 
     - name: install | Approve all install plans
       loop: "{{ _install_plans.resources | default([]) }}"
