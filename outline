@@ -10,7 +10,8 @@ Installing 2.5 operator
 	Wrong storage class- Step 2
 		No default SC defined- 
 		Hub has wrong storage class defined
-	Low quotas set on namespace- set in step 2. Wont notice until step 3
+	Low quotas set on namespace- set in step 2. Wont notice until step 3 - just delete quotas, much easier
+	Pgsql db oomkilled due to low limits- set in step 2, wont notice until step 3
 	Controller auto_upgrade set to false after deployment - configured in step 3, wont notice until step 4  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. 
 	ImagePullBackoff error
 		Using another repository (quay with custom ees) - need EE on a job template with no secret for the repo
