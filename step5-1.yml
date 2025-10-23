@@ -7,7 +7,6 @@
     kubernetes.core.k8s_info:
       api_version: operators.coreos.com/v1alpha1
       kind: Subscription
-      # Use the name of your specific Subscription
       name: "ansible-automation-platform-operator" 
       namespace: "{{ install_namespace }}"
     register: sub_info

@@ -26,7 +26,7 @@
             host: "aap.apps.{{ cluster_base_domain }}"
             to:
               kind: Service
-              name: aap # The target Service name
+              name: aap
               weight: 100
             port:
               targetPort: http

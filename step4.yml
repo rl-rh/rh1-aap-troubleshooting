@@ -29,23 +29,19 @@
         namespace: "{{ install_namespace }}"
       register: install_plans_list
       until: install_plans_list.resources | length > 0
-      # FIX: Use parentheses to calculate division first, then convert the result to an integer
       retries: "{{ ((wait_minutes * 60) / wait_delay_seconds) | int }}"
       delay: "{{ wait_delay_seconds }}"
       failed_when: install_plans_list.resources | length == 0
 
     - name: Use OC to find the InstallPlan name for manual approval
       ansible.builtin.shell:
-        # Use the shell module to enable pipes and shell built-ins
         cmd: "oc get installplan -n {{ install_namespace }} -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers | grep 'RequiresApproval' | awk '{print $1}'"
       register: ip_cmd_output
       changed_when: false
-      # Check for failure: non-zero exit code OR if the output is empty (meaning no pending plan was found)
       failed_when: ip_cmd_output.rc != 0 and 'No resources found' not in ip_cmd_output.stderr
 
     - name: Set final clean variable from command output
       ansible.builtin.set_fact:
-        # The output is now guaranteed to be clean by the shell tools
         install_plan_name_final: "{{ ip_cmd_output.stdout | default('') | trim }}"
 
     - name: Verify extracted name and proceed to approve
@@ -58,12 +54,9 @@
         state: patched
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
-        # Use the clean, shell-extracted variable for the name
         name: "{{ install_plan_name_final }}" 
         namespace: "{{ install_namespace }}"
-        # patch_type: merge
         definition:
           spec:
             approved: true
-      # Only run this task if the shell extraction was successful and found a name
       when: install_plan_name_final is defined and install_plan_name_final | length > 0      

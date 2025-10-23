@@ -50,14 +50,12 @@
     kubernetes.core.k8s_info:
       api_version: operators.coreos.com/v1alpha1
       kind: Subscription
-      # Use the name of your specific Subscription
       name: "ansible-automation-platform-operator" 
       namespace: "{{ install_namespace }}"
     register: sub_info
 
   - name: Set Active CSV Name fact
     ansible.builtin.set_fact:
-      # The currently installed CSV name is found in status.currentCSV
       current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
 
   - name: Patch CSV Deployment Replicas to 0 using OC Patch
