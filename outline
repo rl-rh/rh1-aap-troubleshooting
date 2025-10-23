@@ -22,7 +22,7 @@ Configuring
 Troubleshooting
 	Database service gets deleted and aap unable to connect to dns name - step 5
 	Scheduling container on openshift node fails - step 6
-		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory)
+		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory) - Added to step2, increased memory on gateway api pod
 		Update CRD to schedule somewhere else
 	Custom route not working - done step 7
 		Add CSRF blah blah
