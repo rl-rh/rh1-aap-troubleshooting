@@ -1,11 +1,11 @@
 ---
-- name: configure aap custom resource
+- name: configure hub
   hosts: localhost
   tasks:
 
-    - name: Create AAP CR
+    - name: Install Hub
       kubernetes.core.k8s:
-        state: present
+        state: patched
         definition:
           apiVersion: aap.ansible.com/v1alpha1
           kind: AnsibleAutomationPlatform
@@ -13,29 +13,42 @@
             name: aap
             namespace: "{{ install_namespace }}"
           spec:
-            route_tls_termination_mechanism: Edge
-            no_log: true
-            redis_mode: standalone
-            redis:
-              resource_requirements:
-                limits:
-                  cpu: 500m
-                  memory: 2Gi
-                requests:
-                  cpu: 250m
-                  memory: 1Gi
-            api:
-              log_level: INFO
-              replicas: 1
-            database:
-              postgres_data_volume_init: false
-              idle_disabled: false
-              resource_requirements:
-                limits:
-                  cpu: 1000m
-                  memory: 100Mi
-                requests:
-                  cpu: 500m
-                  memory: 50Mi
-            controller:
-              auto_upgrade: false
+            hub:
+              disabled: false          
+
+    # - name: Create AAP CR
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: aap.ansible.com/v1alpha1
+    #       kind: AnsibleAutomationPlatform
+    #       metadata:
+    #         name: aap
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         route_tls_termination_mechanism: Edge
+    #         no_log: true
+    #         redis_mode: standalone
+    #         redis:
+    #           resource_requirements:
+    #             limits:
+    #               cpu: 500m
+    #               memory: 2Gi
+    #             requests:
+    #               cpu: 250m
+    #               memory: 1Gi
+    #         api:
+    #           log_level: INFO
+    #           replicas: 1
+    #         database:
+    #           postgres_data_volume_init: false
+    #           idle_disabled: false
+    #           resource_requirements:
+    #             limits:
+    #               cpu: 1000m
+    #               memory: 100Mi
+    #             requests:
+    #               cpu: 500m
+    #               memory: 50Mi
+    #         controller:
+    #           auto_upgrade: false
