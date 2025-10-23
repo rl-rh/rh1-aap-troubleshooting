@@ -21,6 +21,14 @@
                 requests:
                   cpu: 500m
                   memory: 50Mi
+            api:
+              resource_requirements:
+                limits:
+                  cpu: 1000m
+                  memory: 500Gi
+                requests:
+                  cpu: 400m
+                  memory: 500Gi                  
             controller:
               auto_upgrade: false              
             # api:
