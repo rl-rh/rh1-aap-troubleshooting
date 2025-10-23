@@ -1,0 +1,46 @@
+---
+- name: configure aap operator
+  hosts: localhost
+  tasks:
+
+    - name: Scale Deployment Down to 0 using Minimal Merge Patch
+      kubernetes.core.k8s:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ install_namespace }}"
+        name: aap-gateway
+        state: present 
+        merge_type: merge 
+        resource_definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: aap-gateway 
+            namespace: "{{ install_namespace }}"
+          spec:
+            replicas: 0
+      register: deployment_scale_status            
+
+    - name: Display Scale Status
+      ansible.builtin.debug:
+        msg: "Successfully scaled deployment down to 0 replicas."
+      when: deployment_scale_status is success
+
+    - name: Update AAP CR
+      kubernetes.core.k8s:
+        state: patched
+        definition:
+          apiVersion: aap.ansible.com/v1alpha1
+          kind: AnsibleAutomationPlatform
+          metadata:
+            name: aap
+            namespace: "{{ install_namespace }}"
+          spec:
+            api:
+              resource_requirements:
+                limits:
+                  cpu: 1000m
+                  memory: 500Gi
+                requests:
+                  cpu: 400m
+                  memory: 500Gi                     

@@ -31,3 +31,6 @@
     ```
     ansible-playbook -e install_namespace=aap1 step9.yml
     ```
+ 10. Run this then log in
+    ```
+    ansible-playbook -e install_namespace=aap1 step10.yml

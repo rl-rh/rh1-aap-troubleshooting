@@ -20,17 +20,29 @@
                   memory: 75Mi
                 requests:
                   cpu: 500m
-                  memory: 50Mi
-            api:
-              resource_requirements:
-                limits:
-                  cpu: 1000m
-                  memory: 500Gi
-                requests:
-                  cpu: 400m
-                  memory: 500Gi                  
+                  memory: 50Mi             
             controller:
-              auto_upgrade: false              
+              auto_upgrade: false       
+
+    - name: modify namespace
+      kubernetes.core.k8s:
+        state: present
+        definition: 
+          apiVersion: v1
+          kind: ResourceQuota
+          metadata:
+            name: "{{ install_namespace }}-quota"
+            namespace: "{{ install_namespace }}"
+          spec:
+            hard:
+              requests.cpu: "4" 
+              limits.cpu: "4"
+              requests.memory: 2Gi
+              limits.memory: 4Gi
+              pods: "8"
+              services: "2" 
+              persistentvolumeclaims: "1"                   
+
             # api:
             #   resource_requirements:
             #     limits:
@@ -95,26 +107,7 @@
               #     memory: 1Gi
               #   requests:
               #     cpu: 500m
-              #     memory: 50Mi
-
-    - name: modify namespace
-      kubernetes.core.k8s:
-        state: present
-        definition: 
-          apiVersion: v1
-          kind: ResourceQuota
-          metadata:
-            name: "{{ install_namespace }}-quota"
-            namespace: "{{ install_namespace }}"
-          spec:
-            hard:
-              requests.cpu: "4" 
-              limits.cpu: "4"
-              requests.memory: 2Gi
-              limits.memory: 4Gi
-              pods: "8"
-              services: "2" 
-              persistentvolumeclaims: "1"          
+              #     memory: 50Mi        
 
     # - name: create namespace
     #   kubernetes.core.k8s:
