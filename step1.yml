@@ -8,40 +8,184 @@
   #   subscription_name: ansible-automation-platform-operator
   tasks:
 
-    - name: Install Ansible Automation Platform operator
-      vars:
-          install_channel: "stable-2.5"
-          install_starting_csv: "aap-operator.v2.5.0-0.1755835086"
-          install_plan_approval: "Manual"
-          install_namespace: "aap2"
-      ansible.builtin.import_role:
-          name: operator
+    # - name: Install Ansible Automation Platform operator
+    #   vars:
+    #       install_channel: "stable-2.5"
+    #       install_starting_csv: "aap-operator.v2.5.0-0.1755835086"
+    #       install_plan_approval: "Manual"
+    #       install_namespace: "aap2"
+    #   ansible.builtin.import_role:
+    #       name: operator
 
-    - name: Create AAP CR
-      kubernetes.core.k8s:
+    # - name: Create AAP CR
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: aap.ansible.com/v1alpha1
+    #       kind: AnsibleAutomationPlatform
+    #       metadata:
+    #         name: aap
+    #         namespace: "{{ install_namespace }}"
+    #       spec:
+    #         api:
+    #           log_level: INFO
+    #           replicas: 1
+    #         controller:
+    #           auto_upgrade: false
+    #           # for some reason these are failing in the migration step of the operator
+    #           # task_node_selector: 'kubernetes.io/os: linux'
+    #           # web_node_selector: 'kubernetes.io/os: linux'      
+    #         database:
+    #           idle_disabled: false
+    #           postgres_data_volume_init: false     
+    #           node_selector:
+    #             kubernetes.io/os: linux                
+    #         hub:
+    #           disabled: true
+    #         no_log: true
+    #         redis_mode: standalone
+    #         route_tls_termination_mechanism: Edge
+
+    - name: Get the Gateway Admin Password Secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        # REPLACE with the actual name of the secret (e.g., 'aap-gateway-credentials')
+        name: aap-admin-password
+        namespace: "{{ install_namespace }}"
+      register: gateway_secret     
+
+    - name: Fail if Admin Password Secret was not found
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-admin-password-secret' not found."
+      when: gateway_secret.resources | length == 0             
+
+    - name: Decode and Aggressively Clean Admin Password Fact
+      ansible.builtin.set_fact:
+        # 1. Get the raw base64 string and decode it.
+        adminpw_string_raw: "{{ gateway_secret.resources[0].data.password | b64decode | string }}"
+
+    - name: Decode and Aggressively Clean Admin Password Fact
+      ansible.builtin.set_fact:
+        aap_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Debug Final Clean Password
+      ansible.builtin.debug:
+        msg: "Final Clean Admin Password: '{{ aap_admin_password }}'"
+
+    - name: Get the OAuth2 Token Secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: aap-gateway-oauth2-token-secret 
+        namespace: "{{ install_namespace }}"
+      register: oauth_token_secret
+
+    - name: Fail if OAuth2 Secret was not found
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-oauth2-token-secret' not found in namespace {{ install_namespace }}."
+      when: oauth_token_secret.resources | length == 0        
+
+    - name: Decode and Set OAuth2 Token Fact (Final Python Regex Clean)
+      ansible.builtin.set_fact:
+        token_string_raw: "{{ oauth_token_secret.resources[0].data.token | b64decode | string }}"
+
+    - name: Decode and Set OAuth2 Token Fact (Final Python Regex Clean)
+      ansible.builtin.set_fact:
+        aap_oauth2_token: "{{ token_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Debug Final Clean Token
+      ansible.builtin.debug:
+        msg: "Final Clean Token: '{{ aap_oauth2_token }}'"
+
+    - name: Get AAP CR details
+      kubernetes.core.k8s_info:
+        api_version: aap.ansible.com/v1alpha1
+        kind: AnsibleAutomationPlatform
+        name: aap # Assuming the standard name is 'aap'
+        namespace: "{{ install_namespace }}"
+      register: aap_cr_info      
+
+    - name: Set Gateway Host Fact
+      ansible.builtin.set_fact:
+        # Target the simple 'URL' field under status
+        controller_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+      when: aap_cr_info.resources | length > 0 and 
+            aap_cr_info.resources[0].status.URL is defined
+
+    - name: Fail if Gateway URL was not found
+      ansible.builtin.fail:
+        msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
+      when: controller_host | length == 0
+
+    - name: Create new AAP Project using OAuth Token and Dynamic Host
+      ansible.controller.project:
+        controller_host: "{{ controller_host }}" # Uses the dynamically extracted URL
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false 
+        name: "AAP Troubleshooting Demo"
+        organization: "Default"
+        scm_type: git
+        scm_url: "https://github.com/rl-rh/rh1-aap-troubleshooting.git"
+        scm_branch: "main"
+        scm_update_on_launch: true
         state: present
-        definition:
-          apiVersion: aap.ansible.com/v1alpha1
-          kind: AnsibleAutomationPlatform
-          metadata:
-            name: aap
-            namespace: "{{ install_namespace }}"
-          spec:
-            api:
-              log_level: INFO
-              replicas: 1
-            controller:
-              auto_upgrade: false
-              # for some reason these are failing in the migration step of the operator
-              # task_node_selector: 'kubernetes.io/os: linux'
-              # web_node_selector: 'kubernetes.io/os: linux'      
-            database:
-              idle_disabled: false
-              postgres_data_volume_init: false     
-              node_selector:
-                kubernetes.io/os: linux                
-            hub:
-              disabled: true
-            no_log: true
-            redis_mode: standalone
-            route_tls_termination_mechanism: Edge
+
+    - name: Create RH1 Inventory Resource
+      ansible.controller.inventory:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "RH1 Inventory"
+        description: "Inventory for RH1 Troubleshooting Labs"
+        organization: "Default" # Use the correct organization name
+        state: present
+      register: inventory_creation_status
+
+    - name: Display Inventory Creation Status
+      ansible.builtin.debug:
+        msg: "Inventory 'RH1 Inventory' created/updated successfully."
+      when: inventory_creation_status is changed or inventory_creation_status is success
+
+    - name: Add 'localhost' to RH1 Inventory
+      ansible.controller.host:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        inventory: "RH1 Inventory" # Target the newly created inventory
+        name: "localhost"
+        state: present
+        variables:
+          ansible_connection: local
+          ansible_python_interpreter: "{{ ansible_playbook_python }}"        
+      register: host_creation_status
+
+    - name: Display Host Creation Status
+      ansible.builtin.debug:
+        msg: "Host 'localhost' added to 'RH1 Inventory'."
+      when: host_creation_status is changed or host_creation_status is success  
+
+    - name: Create RH1 Job Templates (RH1-T1 through RH1-T4)
+      ansible.controller.job_template:
+        # --- Authentication ---
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        # --- Template Configuration ---
+        name: "{{ item.name }}"
+        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default" # Ensure this matches your organization
+        project: "AAP Troubleshooting Demo" # Name of the project you just created
+        inventory: "RH1 Inventory" # <-- CHANGE ME: Use the name of your target Inventory
+        execution_environment: "Default execution environment" # <-- CHANGE ME: Use your required EE name
+        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        - { name: "RH1-T1", suffix: 1 }
+        - { name: "RH1-T2", suffix: 2 }
+        - { name: "RH1-T3", suffix: 3 }
+        - { name: "RH1-T4", suffix: 4 }
+      loop_control:
+        label: "Creating Job Template {{ item.name }}"        
