@@ -1,0 +1,47 @@
+---
+- name: install aap operator and CR
+  hosts: localhost
+  # vars:
+  #   # Set a reasonable timeout for the wait
+  #   wait_minutes: 5
+  #   wait_delay_seconds: 15
+  #   subscription_name: ansible-automation-platform-operator
+  tasks:
+
+    - name: Install Ansible Automation Platform operator
+      vars:
+          install_channel: "stable-2.5"
+          install_starting_csv: "aap-operator.v2.5.0-0.1755835086"
+          install_plan_approval: "Manual"
+          install_namespace: "aap2"
+      ansible.builtin.import_role:
+          name: operator
+
+    - name: Create AAP CR
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: aap.ansible.com/v1alpha1
+          kind: AnsibleAutomationPlatform
+          metadata:
+            name: aap
+            namespace: "{{ install_namespace }}"
+          spec:
+            api:
+              log_level: INFO
+              replicas: 1
+            controller:
+              auto_upgrade: false
+              # for some reason these are failing in the migration step of the operator
+              # task_node_selector: 'kubernetes.io/os: linux'
+              # web_node_selector: 'kubernetes.io/os: linux'      
+            database:
+              idle_disabled: false
+              postgres_data_volume_init: false     
+              node_selector:
+                kubernetes.io/os: linux                
+            hub:
+              disabled: true
+            no_log: true
+            redis_mode: standalone
+            route_tls_termination_mechanism: Edge
