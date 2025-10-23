@@ -14,7 +14,31 @@
             namespace: "{{ install_namespace }}"
           spec:
             hub:
-              disabled: false          
+              disabled: false
+              content:
+                resource_requirements:
+                  limits:
+                    cpu: 500m
+                    memory: 800Mi
+                  requests:
+                    cpu: 100m
+                    memory: 200Mi                    
+              api:
+                resource_requirements:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 400m
+                    memory: 500Mi                          
+              worker:
+                resource_requirements:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 400m
+                    memory: 500Mi                      
 
     # - name: Create AAP CR
     #   kubernetes.core.k8s:
