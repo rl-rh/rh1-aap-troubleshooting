@@ -12,8 +12,7 @@
           metadata:
             name: aap
             namespace: "{{ install_namespace }}"
-            patch:
-              spec:
-                controller:
-                  node_selector: |
-                    kubernetes.io/os: not_linux
+          spec:
+            database:      
+              node_selector:
+                "kubernetes.io/os": "not_linux"
