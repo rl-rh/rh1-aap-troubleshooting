@@ -46,7 +46,7 @@
     ansible.builtin.debug:
       var: command_output
 
-  - name: Delete the aap-postgres-15 Route
+  - name: Delete the aap-postgres-15 Service
     kubernetes.core.k8s:
       api_version: v1 
       kind: Service
