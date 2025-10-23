@@ -29,7 +29,7 @@ Troubleshooting
 	Adding environment variables to task/web pods
 		Proxy variables not showing up in deployment
 		SMTP service accessible through specific proxy
-	Container group unable to pull EE from private repo
+	Container group unable to pull EE from private repo. Step 8, instead of doing container group, just going to put an EE in there without a registry cred
 	ALIA chat icon not showing up
 		Just want to look at pods and logs for api/chat/etc
 	Hub unable to sync collections

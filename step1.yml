@@ -157,7 +157,23 @@
         msg: "Host 'localhost' added to 'RH1 Inventory'."
       when: host_creation_status is changed or host_creation_status is success  
 
-    - name: Create RH1 Job Templates (RH1-T1 through RH1-T4)
+    - name: Create RH1-EE1 Execution Environment
+      ansible.controller.execution_environment:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "RH1-EE1"
+        image: "quay.io/rh-ee-rlaroy/ryan:latest"
+        organization: "Default"
+        state: present
+      register: ee_status
+
+    - name: Display Execution Environment Status
+      ansible.builtin.debug:
+        msg: "Execution Environment 'RH1-EE1' created/updated successfully."
+      when: ee_status is changed or ee_status is success      
+
+    - name: Create RH1 Job Templates (RH1-T1 through RH1-T3)
       ansible.controller.job_template:
         controller_host: "{{ controller_host }}"
         controller_oauthtoken: "{{ aap_oauth2_token }}"
@@ -176,6 +192,29 @@
         - { name: "RH1-T1", suffix: 1 }
         - { name: "RH1-T2", suffix: 2 }
         - { name: "RH1-T3", suffix: 3 }
-        - { name: "RH1-T4", suffix: 4 }
+        # - { name: "RH1-T4", suffix: 4 }
       loop_control:
         label: "Creating Job Template {{ item.name }}"        
+
+    - name: Create RH1 Job Templates (RH1-T4)
+      ansible.controller.job_template:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "{{ item.name }}"
+        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default"
+        project: "AAP Troubleshooting Demo"
+        inventory: "RH1 Inventory"
+        execution_environment: "RH1-EE1"
+        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        # - { name: "RH1-T1", suffix: 1 }
+        # - { name: "RH1-T2", suffix: 2 }
+        # - { name: "RH1-T3", suffix: 3 }
+        - { name: "RH1-T4", suffix: 4 }
+      loop_control:
+        label: "Creating Job Template {{ item.name }}"              

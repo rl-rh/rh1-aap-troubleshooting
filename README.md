@@ -26,3 +26,4 @@
     ```
     ansible-playbook -e install_namespace=aap1 step7.yml
     ```
+ 8. Run RH1-T4 and figure out why its failing   
