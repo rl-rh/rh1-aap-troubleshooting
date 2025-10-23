@@ -3,7 +3,7 @@
   hosts: localhost
   tasks:
 
-  - name: 1. Find the running aap-gateway pod name
+  - name: Find the running aap-gateway pod name
     kubernetes.core.k8s_info:
       api_version: v1
       kind: Pod
@@ -45,6 +45,30 @@
   - name: Display command output (check for 'None' or success)
     ansible.builtin.debug:
       var: command_output
+
+  - name: Get Active CSV Name from Subscription
+    kubernetes.core.k8s_info:
+      api_version: operators.coreos.com/v1alpha1
+      kind: Subscription
+      # Use the name of your specific Subscription
+      name: "ansible-automation-platform-operator" 
+      namespace: "{{ install_namespace }}"
+    register: sub_info
+
+  - name: Set Active CSV Name fact
+    ansible.builtin.set_fact:
+      # The currently installed CSV name is found in status.currentCSV
+      current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
+
+  - name: Patch CSV Deployment Replicas to 0 using OC Patch
+    ansible.builtin.shell:
+      cmd: >
+        oc patch csv {{ current_csv_name }} -n {{ install_namespace }} --type='json' 
+        -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":0}]'
+    register: csv_patch_status
+    changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+    failed_when: csv_patch_status.rc != 0
+    become: no
 
   - name: Delete the aap-postgres-15 Service
     kubernetes.core.k8s:
