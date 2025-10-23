@@ -26,4 +26,8 @@
     ```
     ansible-playbook -e install_namespace=aap1 step7.yml
     ```
- 8. Run RH1-T4 and figure out why its failing   
+ 8. Run RH1-T4 and figure out why its failing
+ 9. Run this then log in and sync the community repository in Automation Content
+    ```
+    ansible-playbook -e install_namespace=aap1 step9.yml
+    ```
