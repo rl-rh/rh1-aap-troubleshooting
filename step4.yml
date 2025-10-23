@@ -1,20 +1,10 @@
 ---
 - name: configure aap custom resource
   hosts: localhost
+  vars:
+    wait_minutes: 5
+    wait_delay_seconds: 15
   tasks:
-
-    # - name: modify controller cr
-    #   kubernetes.core.k8s:
-    #     state: patched
-    #     definition:
-    #       apiVersion: automationcontroller.ansible.com/v1beta1
-    #       kind: AutomationController
-    #       metadata:
-    #         name: aap-controller
-    #         namespace: "{{ install_namespace }}"
-    #         patch:
-    #           spec:
-    #             auto_upgrade: true
 
     - name: Update AAP to latest operator
       kubernetes.core.k8s:
@@ -23,11 +13,57 @@
           apiVersion: operators.coreos.com/v1alpha1
           kind: Subscription
           metadata:
-            name: ansible-automation-platform
+            name: ansible-automation-platform-operator
             namespace: "{{ install_namespace }}"
           spec:
             channel: 'stable-2.5'
             installPlanApproval: Automatic
             name: ansible-automation-platform-operator
             source: redhat-operators
-            sourceNamespace: openshift-marketplace                
+            sourceNamespace: openshift-marketplace
+
+    - name: Get list of InstallPlans (Wait up to {{ wait_minutes }}m)
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        namespace: "{{ install_namespace }}"
+      register: install_plans_list
+      until: install_plans_list.resources | length > 0
+      # FIX: Use parentheses to calculate division first, then convert the result to an integer
+      retries: "{{ ((wait_minutes * 60) / wait_delay_seconds) | int }}"
+      delay: "{{ wait_delay_seconds }}"
+      failed_when: install_plans_list.resources | length == 0
+
+    - name: Use OC to find the InstallPlan name for manual approval
+      ansible.builtin.shell:
+        # Use the shell module to enable pipes and shell built-ins
+        cmd: "oc get installplan -n {{ install_namespace }} -o custom-columns=NAME:.metadata.name,PHASE:.status.phase --no-headers | grep 'RequiresApproval' | awk '{print $1}'"
+      register: ip_cmd_output
+      changed_when: false
+      # Check for failure: non-zero exit code OR if the output is empty (meaning no pending plan was found)
+      failed_when: ip_cmd_output.rc != 0 and 'No resources found' not in ip_cmd_output.stderr
+
+    - name: Set final clean variable from command output
+      ansible.builtin.set_fact:
+        # The output is now guaranteed to be clean by the shell tools
+        install_plan_name_final: "{{ ip_cmd_output.stdout | default('') | trim }}"
+
+    - name: Verify extracted name and proceed to approve
+      ansible.builtin.debug:
+        msg: "FINAL CLEAN NAME: '{{ install_plan_name_final }}'. Proceeding to approve."
+      when: install_plan_name_final is defined and install_plan_name_final | length > 0
+
+    - name: Approve the identified InstallPlan using kubernetes.core
+      kubernetes.core.k8s:
+        state: patched
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        # Use the clean, shell-extracted variable for the name
+        name: "{{ install_plan_name_final }}" 
+        namespace: "{{ install_namespace }}"
+        # patch_type: merge
+        definition:
+          spec:
+            approved: true
+      # Only run this task if the shell extraction was successful and found a name
+      when: install_plan_name_final is defined and install_plan_name_final | length > 0      
