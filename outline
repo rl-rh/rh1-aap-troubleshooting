@@ -14,7 +14,7 @@ Installing 2.5 operator
 	Pgsql db oomkilled due to low limits- set in step 2, wont notice until step 3
 	Controller auto_upgrade set to false after deployment - configured in step 3, wont notice until step 4  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. 
 	ImagePullBackoff error
-		Using another repository (quay with custom ees) - need EE on a job template with no secret for the repo
+		Using another repository (quay with custom ees) - Done Step 8
 		Global pull secret from registry.redhat.io
 Configuring
 	Gateway reset admin password. step 5
@@ -29,7 +29,7 @@ Troubleshooting
 	Adding environment variables to task/web pods
 		Proxy variables not showing up in deployment
 		SMTP service accessible through specific proxy
-	Container group unable to pull EE from private repo. Step 8, instead of doing container group, just going to put an EE in there without a registry cred
+	Container group unable to pull EE from private repo.
 	ALIA chat icon not showing up
 		Just want to look at pods and logs for api/chat/etc
 	Hub unable to sync collections
