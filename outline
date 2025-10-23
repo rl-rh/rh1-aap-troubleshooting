@@ -32,7 +32,7 @@ Troubleshooting
 	Container group unable to pull EE from private repo.
 	ALIA chat icon not showing up
 		Just want to look at pods and logs for api/chat/etc
-	Hub unable to sync collections
+	Hub unable to sync collections - limits set in step 3, sync in step 9
 		Hub pvc too small
 		Or requests/limits too small on content pod
 	2.4 to 2.5/6 upgrade issues
