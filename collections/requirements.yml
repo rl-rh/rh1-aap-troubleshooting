@@ -1,7 +1,15 @@
 ---
 collections:
-  # - name: ansible.controller
-  #   version: ">=4.6.0"
-  # - name: infra.aap_configuration
-  - name: awx.awx
+  # Certified Content
+  - name: ansible.controller
+  - name: ansible.platform
   - name: ansible.hub
+  - name: ansible.eda
+  - name: kubernetes.core
+
+  # Validated Content
+  - name: infra.aap_configuration
+  - name: infra.aap_configuration_extended
+
+  # Community Content
+  - name: community.general

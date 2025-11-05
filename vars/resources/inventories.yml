@@ -1,0 +1,14 @@
+---
+
+controller_inventories:
+  - name: RH1 inventory
+    organization: Default
+
+
+controller_hosts:
+  - name: localhost
+    inventory: RH1 inventory
+    variables:
+      ansible_host: 127.0.0.1
+      ansible_connection: local
+      ansible_python_interpreter: !unsafe "{{ ansible_playbook_python }}"

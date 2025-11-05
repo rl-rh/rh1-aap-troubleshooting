@@ -1,0 +1,63 @@
+---
+
+- name: Adjusting some stuff....
+  no_log: "{{ no_log | default(True) }}"
+  block:
+    - name: Something got configured
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: LimitRange
+          metadata:
+            name: "{{ _scenario_name }}-limit-range"
+            namespace: "{{ namespace }}"
+          spec:
+            limits:
+              - max:
+                # Maximum allowed limit for any single container
+                  cpu: 2
+                  memory: 2Gi
+                min:
+                  # Minimum required request for any single container
+                  cpu: "10m"
+                  memory: "64Mi"
+
+    - name: Another thing got configured
+      kubernetes.core.k8s:
+        state: patched
+        apiVersion: automationcontroller.ansible.com/v1beta1
+        kind: AutomationController
+        name: "{{ _scenario_name }}-controller"
+        namespace: "{{ namespace }}"
+        definition:
+          spec:
+            auto_upgrade: false
+
+- name: Whoops....dropped the hammer....
+  no_log: "{{ no_log | default(True) }}"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Service
+    name: "{{ _scenario_name }}-postgres-15"
+    namespace: "{{ namespace }}"
+
+- name: Uh oh...you are not going to like this
+  no_log: "{{ no_log | default(True) }}"
+  vars:
+    restart_annotation_key: "kubectl.kubernetes.io/restartedAt"
+    current_time: "{{ lookup('ansible.builtin.now', '%Y%m%dT%H%M%SZ') }}"
+  loop: ['task', 'web']
+  kubernetes.core.k8s:
+    state: patched
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ _scenario_name }}-controller-{{ item }}"
+    namespace: "{{ namespace }}"
+    definition:
+      spec:
+        template:
+          metadata:
+            annotations:
+              restart_annotation_key: "{{ current_time }}"

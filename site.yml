@@ -1,0 +1,47 @@
+---
+
+- name: Scenario Setup Playbook
+  hosts: all
+  gather_facts: false
+
+  vars_files:
+    - "{{ playbook_dir }}/vars/main.yml"
+
+  vars_prompt:
+    - name: scenario_option
+      private: no
+      prompt: |-
+
+        Please choose an option:
+          {% for i in scenarios_allowed %}
+          {{ i }}. Scenario #{{ i }}
+          {% endfor %}
+
+        Enter the number corresponding to your choice
+
+  tasks:
+    - name: Block to capture everything
+      tags: ['deploy']
+      block:
+        - name: Get scenario variables
+          ansible.builtin.include_vars:
+            dir: "{{ playbook_dir }}/vars"
+            file: "scenario-{{ scenario_option }}.yml"
+            hash_behaviour: replace
+
+        # Delete namespace
+        # Setup namespace / operator
+        - name: Setup namespace and operator
+          ansible.builtin.include_role:
+            name: operator
+
+        # Deploy the scenario
+        - name: Setup scenario
+          ansible.builtin.include_role:
+            name: scenario_{{ scenario_option }}
+      rescue:
+        - name: Report failure message
+          ansible.builtin.fail:
+            msg: |
+              There was a failure in setting up the scenario. Please re-run the setup again to see if
+              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
