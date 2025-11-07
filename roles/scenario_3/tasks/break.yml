@@ -13,27 +13,27 @@
     namespace: "{{ namespace }}"
     label_selectors: app.kubernetes.io/component=aap-gateway
   register: gateway_pods
-  # no_log: "{{ nolog | default(True) }}"  
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Find another thing
   ansible.builtin.set_fact:
     extracted_name_raw: >
-      {{ gateway_pods.resources 
-        | selectattr('status.phase', 'equalto', 'Running') 
+      {{ gateway_pods.resources
+        | selectattr('status.phase', 'equalto', 'Running')
         | map(attribute='metadata.name')
         | first | default('') | string }}
-  no_log: "{{ nolog | default(True) }}"        
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Find another thing again
-  ansible.builtin.set_fact:      
+  ansible.builtin.set_fact:
     gateway_pod_name: "{{ extracted_name_raw | replace('\n', '') | replace('\r', '') | trim }}"
-  no_log: "{{ nolog | default(True) }}"    
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Fail sometimes
   ansible.builtin.fail:
     msg: "Could not find a running pod with the label 'app=aap-gateway'. Check pod status."
   when: gateway_pod_name is none or gateway_pod_name | length == 0
-  no_log: "{{ nolog | default(True) }}"  
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Here be secrets
   kubernetes.core.k8s_exec:
@@ -43,127 +43,39 @@
     command: >-
       bash -c "echo 'from django.contrib.auth import get_user_model; User = get_user_model(); u=User.objects.get(username=\"admin\"); u.set_password(\"h2as43d978hj\"); u.save()' | aap-gateway-manage shell"
   register: command_output
-  changed_when: command_output.rc == 0  
-  no_log: "{{ nolog | default(True) }}"  
+  changed_when: command_output.rc == 0
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Whats in a name?
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: Subscription
-    name: "ansible-automation-platform-operator" 
+    name: "ansible-automation-platform-operator"
     namespace: "{{ namespace }}"
   register: sub_info
-  no_log: "{{ nolog | default(True) }}"  
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Finding something else
   ansible.builtin.set_fact:
     current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
-  no_log: "{{ nolog | default(True) }}"    
+  no_log: "{{ nolog | default(True) }}"
 
 - name: No name task
   ansible.builtin.shell:
     cmd: >
-      oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json' 
+      oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json'
       -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":0}]'
   register: csv_patch_status
   changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
   failed_when: csv_patch_status.rc != 0
-  no_log: "{{ nolog | default(True) }}"  
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Making changes to prod on a friday
   kubernetes.core.k8s:
-    api_version: v1 
-    kind: Service
-    name: aap-postgres-15
-    namespace: "{{ namespace }}" 
-    state: absent
-  register: route_delete_status
-  no_log: "{{ nolog | default(True) }}"  
-
-- name: Set the table
-  ansible.builtin.set_fact:
-    user_confirmation: "no"
-
-- name: Find the issue?
-  ansible.builtin.pause:
-    prompt: |-
-      Did you figure out the issue? (yes or no)
-      (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
-    echo: yes
-  register: confirmation_input
-  until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
-  retries: 99999
-  delay: 0
-
-- name: Get Active CSV Name from Subscription
-  kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: "ansible-automation-platform-operator" 
-    namespace: "{{ namespace }}"
-  register: sub_info
-
-- name: Set Active CSV Name fact
-  ansible.builtin.set_fact:
-    current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
-
-- name: Revert CSV Patch Set Gateway Operator Replicas back to 1
-  ansible.builtin.shell:
-    cmd: >
-      oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json' 
-      -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":1}]'
-  register: csv_revert_status
-  changed_when: csv_revert_status.rc == 0 and ('patched' in csv_revert_status.stdout or 'patched' in csv_revert_status.stderr)
-  failed_when: csv_revert_status.rc != 0
-
-- name: Get UID of the AnsibleAutomationPlatform CR
-  kubernetes.core.k8s_info:
-    api_version: aap.ansible.com/v1alpha1
-    kind: AnsibleAutomationPlatform
-    name: "{{ _scenario_name }}-aap"
-    namespace: "{{ namespace }}"
-  register: aap_cr_info    
-
-- name: "Create the {{ _scenario_name }}-aap-postgres-15 service"
-  kubernetes.core.k8s:
     api_version: v1
     kind: Service
-    name: "{{ _scenario_name }}-aap-postgres-15"
-    namespace: "{{ namespace }}" 
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: "{{ _scenario_name }}-aap-postgres-15"
-        namespace: "{{ namespace }}" 
-        ownerReferences:
-          - apiVersion: aap.ansible.com/v1alpha1
-            kind: AnsibleAutomationPlatform
-            name: aap
-            uid: "{{ aap_cr_info.resources[0].metadata.uid }}"
-        labels:
-          app.kubernetes.io/component: database
-          app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
-          app.kubernetes.io/managed-by: aap-gateway-operator
-          app.kubernetes.io/name: postgres-15
-      spec:
-        clusterIP: None
-        ipFamilies:
-          - IPv4
-        ports:
-          - name: '5432'
-            protocol: TCP
-            port: 5432
-            targetPort: 5432
-        internalTrafficPolicy: Cluster
-        clusterIPs:
-          - None
-        type: ClusterIP
-        ipFamilyPolicy: SingleStack
-        sessionAffinity: None
-        selector:
-          app.kubernetes.io/component: database
-          app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
-          app.kubernetes.io/managed-by: aap-gateway-operator
-          app.kubernetes.io/name: postgres-15       
+    name: aap-postgres-15
+    namespace: "{{ namespace }}"
+    state: absent
+  register: route_delete_status
+  no_log: "{{ nolog | default(True) }}"
