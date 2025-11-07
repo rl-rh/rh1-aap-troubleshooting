@@ -15,10 +15,26 @@
         name: "{{ _scenario_name }}-hub"
         namespace: "{{ namespace }}"
       spec:
-        hub:
-          disabled: false
+        nginx_proxy_send_timeout: 15s
+        gunicorn_content_workers: 2
+        gunicorn_api_workers: 2
+        route_tls_termination_mechanism: Edge
+        ingress_type: Route
+        loadbalancer_port: 80
+        no_log: true
+        file_storage_size: 25Mi
+        image_pull_policy: IfNotPresent
+        nginx_proxy_read_timeout: 15s
+        gunicorn_timeout: 10
+        nginx_client_max_body_size: 10m
+        nginx_proxy_connect_timeout: 15s
+        public_base_url: ''
+        haproxy_timeout: 180s
+        file_storage_access_mode: ReadWriteMany
+        force_drop_db: false
+        loadbalancer_protocol: http      
 
-  # Reference: https://github.com/ansible-automation-platform/aap-gateway-operator/blob/main/roles/ansibleautomationplatform/tasks/wait_for_controller.yml
+  # Reference: https://github.com/ansible-automation-platform/aap-gateway-operator/blob/main/roles/ansibleautomationplatform/tasks/wait_for_hub.yml
 - name: Wait for Automation Hub API pod
   register: _hub_pod
   retries: 60
