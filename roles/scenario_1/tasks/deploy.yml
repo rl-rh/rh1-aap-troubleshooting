@@ -2,8 +2,7 @@
 
 - name: Set role variables
   ansible.builtin.include_vars:
-    dir: "{{ role_path }}/vars"
-    file: main.yml
+    file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
 - name: Create custom resource
@@ -39,11 +38,11 @@
         postgres_keepalives: true
         postgres_resource_requirements:
           requests:
-            cpu: 4
-            memory: 4Gi
+            cpu: '4'
+            memory: '4Gi'
         projects_persistence: false
         projects_storage_access_mode: ReadWriteMany
-        projects_storage_size: 8Gi
+        projects_storage_size: '8Gi'
         replicas: 1
         route_tls_termination_mechanism: Edge
         set_self_labels: true
@@ -71,11 +70,11 @@
 - name: Wait for Automation Controller pod
   register: _controller_pod
   retries: 60
-  delay: 15
+  delay: 20
   until:
     - _controller_pod['resources'] | length
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', instance_name + '-controller-task') | map(attribute='ready') | list | first is defined
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', instance_name + '-controller-task') | map(attribute='ready') | list | first == true
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first is defined
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first == true
   kubernetes.core.k8s_info:
     kind: Pod
     api_version: v1
