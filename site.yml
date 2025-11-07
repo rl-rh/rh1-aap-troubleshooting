@@ -87,7 +87,7 @@
             hash_behaviour: replace
 
         # Deploy the scenario
-        - name: Setup scenario
+        - name: Fix scenario
           ansible.builtin.include_role:
             name: scenario_{{ scenario_option }}
             tasks_from: fix.yml
