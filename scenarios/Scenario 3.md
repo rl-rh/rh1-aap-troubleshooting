@@ -9,7 +9,7 @@ Scenario #3
 
       - Run playbook to mess things up
         - gateway password changed
-        - delete database service?
+        - delete database service
 
       - Troubleshoot
 
