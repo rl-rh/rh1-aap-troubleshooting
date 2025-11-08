@@ -21,8 +21,8 @@ Configuring
 		Unable to login with admin secret in UI - done
 Troubleshooting
 	Database service gets deleted and aap unable to connect to dns name - step 5 scenario 3
-	Scheduling container on openshift node fails - step 6
-		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory) - Added to step10, increased memory on gateway api pod
+	Scheduling container on openshift node fails - step 6 - scenario 4
+		(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory) - Added to step10, increased memory on gateway api pod - scenario 4
 		Update CRD to schedule somewhere else
 	Custom route not working - done step 7
 		Add CSRF blah blah
