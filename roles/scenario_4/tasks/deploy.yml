@@ -16,7 +16,7 @@
         namespace: "{{ namespace }}"
       spec:
         eda:
-          disabled: false
+          disabled: true
         route_tls_termination_mechanism: Edge
         no_log: false
         redis_mode: standalone
@@ -32,30 +32,14 @@
         controller:
           disabled: false
 
-- name: Wait for Automation Hub API pod
-  register: _hub_pod
-  retries: 60
-  delay: 15
-  until:
-    - _hub_pod['resources'] | length
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name=automationhub-api"
-      - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
-      - "app.kubernetes.io/component=api"            
-
-  # Reference: https://github.com/ansible-automation-platform/aap-gateway-operator/blob/main/roles/ansibleautomationplatform/tasks/wait_for_controller.yml
 - name: Wait for Automation Controller pod
   register: _controller_pod
   retries: 60
   delay: 20
   until:
     - _controller_pod['resources'] | length
-    # - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first is defined
-    # - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first == true
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first is defined
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first == true
   kubernetes.core.k8s_info:
     kind: Pod
     api_version: v1
@@ -64,3 +48,20 @@
       - "app.kubernetes.io/name={{ _scenario_name }}-aap-controller-task"
       - "app.kubernetes.io/managed-by=automationcontroller-operator"
       - "app.kubernetes.io/component=automationcontroller"
+
+- name: Wait for Automation Hub API pod
+  register: _hub_pod
+  retries: 60
+  delay: 15
+  until:
+    - _hub_pod['resources'] | length
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name=automationhub-api"
+      - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
+      - "app.kubernetes.io/component=api"
