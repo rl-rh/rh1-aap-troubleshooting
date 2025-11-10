@@ -66,8 +66,8 @@
 
     - name: Get AAP CR details
       kubernetes.core.k8s_info:
-        api_version: aap.ansible.com/v1alpha1
-        kind: AnsibleAutomationPlatform
+        api_version: automationhub.ansible.com/v1beta1
+        kind: AutomationHub
         name: aap
         namespace: "{{ namespace }}"
       register: aap_cr_info      
