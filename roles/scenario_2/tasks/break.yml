@@ -7,7 +7,7 @@
       kubernetes.core.k8s:
         state: patched
         definition:
-          apiVersion: aap.ansible.com/v1alpha1
+          apiVersion: automationhub.ansible.com/v1beta1
           kind: AutomationHub
           metadata:
             name: "{{ _scenario_name }}-hub"
