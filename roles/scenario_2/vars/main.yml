@@ -1,7 +1,3 @@
 ---
 
 _scenario_name: "scenario-2"
-hub_file_access_mode: ReadWriteMany
-hub_file_storage_size: 25Mi
-hub_file_storage_class: ocs-external-storagecluster-cephfs
-hub_admin_pass_var: adminPasswordSecret

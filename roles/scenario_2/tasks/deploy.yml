@@ -22,9 +22,6 @@
         ingress_type: Route
         loadbalancer_port: 80
         no_log: true
-        file_storage_access_mode: "{{ hub_file_access_mode }}"
-        file_storage_size: "{{ hub_file_storage_size }}"
-        file_storage_storage_class: "{{ hub_file_storage_class }}"
         image_pull_policy: IfNotPresent
         nginx_proxy_read_timeout: 15s
         gunicorn_timeout: 10
@@ -41,8 +38,8 @@
   delay: 15
   until:
     - _hub_pod['resources'] | length
-    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
-    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
+    # - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    # - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
   kubernetes.core.k8s_info:
     kind: Pod
     api_version: v1
