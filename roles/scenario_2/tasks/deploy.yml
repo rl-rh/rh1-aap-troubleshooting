@@ -15,6 +15,7 @@
         name: "{{ _scenario_name }}-hub"
         namespace: "{{ namespace }}"
       spec:
+        hub:
         nginx_proxy_send_timeout: 15s
         gunicorn_content_workers: 2
         gunicorn_api_workers: 2
@@ -48,3 +49,10 @@
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-hub"
       - "app.kubernetes.io/component=api"
+
+- name: Find out what is wrong with the Hub Pods
+  ansible.builtin.debug:
+    msg: |-
+      Hub was deployed, but something is going on with the Hub Pods, find out why.      
+      Note: Hub UI will not be available, just focus on the Hub Pods.
+      There is no break step in this scenario. 
