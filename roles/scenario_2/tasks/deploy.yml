@@ -22,7 +22,9 @@
         ingress_type: Route
         loadbalancer_port: 80
         no_log: true
-        file_storage_size: 25Mi
+        file_storage_access_mode: "{{ hub_file_access_mode }}"
+        file_storage_size: "{{ hub_file_storage_size }}"
+        file_storage_storage_class: "{{ hub_file_storage_class }}"
         image_pull_policy: IfNotPresent
         nginx_proxy_read_timeout: 15s
         gunicorn_timeout: 10
@@ -30,7 +32,6 @@
         nginx_proxy_connect_timeout: 15s
         public_base_url: ''
         haproxy_timeout: 180s
-        file_storage_access_mode: ReadWriteMany
         force_drop_db: false
         loadbalancer_protocol: http      
 
