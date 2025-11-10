@@ -43,13 +43,13 @@
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Secret
-        name: aap-hub-admin-password 
+        name: "{{ hub_admin_pass_var }}"
         namespace: "{{ namespace }}"
       register: hub_secret     
 
     - name: Fail if Admin Password Secret was not found
       ansible.builtin.fail:
-        msg: "Secret 'aap-hub-admin-password' not found."
+        msg: "Secret {{ hub_admin_pass_var }} not found."
       when: hub_secret.resources | length == 0             
 
     - name: Decode and Aggressively Clean Admin Password Fact
