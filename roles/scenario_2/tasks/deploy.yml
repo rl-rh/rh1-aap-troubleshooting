@@ -35,13 +35,14 @@
         force_drop_db: false
         loadbalancer_protocol: http      
 
-  # Reference: https://github.com/ansible-automation-platform/aap-gateway-operator/blob/main/roles/ansibleautomationplatform/tasks/wait_for_hub.yml
 - name: Wait for Automation Hub API pod
   register: _hub_pod
   retries: 60
   delay: 15
   until:
     - _hub_pod['resources'] | length
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
   kubernetes.core.k8s_info:
     kind: Pod
     api_version: v1
@@ -49,4 +50,4 @@
     label_selectors:
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-hub"
-      - "app.kubernetes.io/component=api"      
+      - "app.kubernetes.io/component=api"
