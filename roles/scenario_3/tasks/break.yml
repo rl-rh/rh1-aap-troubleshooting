@@ -74,7 +74,7 @@
   kubernetes.core.k8s:
     api_version: v1
     kind: Service
-    name: aap-postgres-15
+    name: "{{ _scenario_name }}-aap-postgres-15"
     namespace: "{{ namespace }}"
     state: absent
   register: route_delete_status
