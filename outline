@@ -14,7 +14,7 @@ Installing 2.5 operator
 	-- Pgsql db oomkilled due to low limits- set in step 2, wont notice until step 3- scenario 1
 	-- Controller auto_upgrade set to false after deployment - configured in step 3, wont notice until step 4  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. - scenario 1
 	ImagePullBackoff error
-		Using another repository (quay with custom ees) - Done Step 8
+		Using another repository (quay with custom ees) - Done Step 8 - add to scenario 6?
 		Global pull secret from registry.redhat.io
 Configuring
 	-- Gateway reset admin password. step 5 - scenario 3
@@ -24,7 +24,7 @@ Troubleshooting
 	-- Scheduling container on openshift node fails - step 6 - scenario 4
 	-- 	(i.e. 0/X nodes are available: X node(s) had untolerated taint... or Insufficient CPU/memory) - Added to step10, increased memory on gateway api pod - scenario 4
 	-- 	Update CRD to schedule somewhere else
-	Custom route not working - done step 7
+	Custom route not working - done step 7 - add to scenario 6?
 		Add CSRF blah blah
 	Adding environment variables to task/web pods
 		Proxy variables not showing up in deployment
@@ -32,7 +32,7 @@ Troubleshooting
 	Container group unable to pull EE from private repo.
 	ALIA chat icon not showing up
 		Just want to look at pods and logs for api/chat/etc
-	-- Hub unable to sync collections - limits set in step 3, sync in step 9 - scenario 2
+	-- Hub unable to sync collections - limits set in step 3, sync in step 9 - set in scenario 3, run into in scenario 5
 	-- 	Hub pvc too small
 	-- 	Or requests/limits too small on content pod
 	2.4 to 2.5/6 upgrade issues
