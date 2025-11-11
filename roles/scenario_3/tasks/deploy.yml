@@ -18,7 +18,6 @@
         eda:
           disabled: true
         route_tls_termination_mechanism: Edge
-        no_log: false
         redis_mode: standalone
         image_pull_policy: IfNotPresent
         hub:
