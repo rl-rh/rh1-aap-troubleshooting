@@ -6,3 +6,4 @@ namespace: aap-rh1
 install_namespace: "{{ namespace }}"
 install_channel: 'stable-2.5'
 install_plan_approval: 'Automatic'
+install_starting_csv: "aap-operator.v2.5.0-0.1761050204"
