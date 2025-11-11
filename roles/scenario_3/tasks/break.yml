@@ -40,8 +40,8 @@
     namespace: "{{ namespace }}"
     pod: "{{ gateway_pod_name }}"
     container: "api"
-    command: >-
-      bash -c "echo 'from django.contrib.auth import get_user_model; User = get_user_model(); u=User.objects.get(username=\"admin\"); u.set_password(\"h2as43d978hj\"); u.save()' | aap-gateway-manage shell"
+    command: aap-gateway-manage update_password --username admin --password h2as43d978hj
+      # bash -c "echo 'from django.contrib.auth import get_user_model; User = get_user_model(); u=User.objects.get(username=\"admin\"); u.set_password(\"h2as43d978hj\"); u.save()' | aap-gateway-manage shell"
   register: command_output
   changed_when: command_output.rc == 0
   no_log: "{{ nolog | default(True) }}"

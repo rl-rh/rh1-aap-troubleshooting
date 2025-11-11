@@ -22,8 +22,6 @@
         redis_mode: standalone
         image_pull_policy: IfNotPresent
         hub:
-          # content:
-          #   replicas: 1
           disabled: false
           file_storage_access_mode: "{{ hub_file_access_mode }}"
           file_storage_size: "{{ hub_file_storage_size }}"
@@ -31,6 +29,7 @@
           storage_type: file
         controller:
           disabled: false
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Wait for Automation Controller pod
   register: _controller_pod
