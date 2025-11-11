@@ -1,0 +1,8 @@
+---
+
+namespace: aap-rh1
+
+# Operator Version
+install_namespace: "{{ namespace }}"
+install_channel: 'stable-2.5'
+install_plan_approval: 'Automatic'
