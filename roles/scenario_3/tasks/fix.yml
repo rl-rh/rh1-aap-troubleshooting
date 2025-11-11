@@ -13,13 +13,71 @@
 - name: Find the issue?
   ansible.builtin.pause:
     prompt: |-
-      Did you figure out and fix the issue? (yes or no)
+      Did you figure out and fix the issues? There were two issues. 
+      (yes or no)
       (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
     echo: yes
   register: confirmation_input
   until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
   retries: 99999
   delay: 0
+
+- name: Find the current gateway admin secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}"
+  register: admin_password_secret
+
+- name: Decode the 'password' field and set as a fact
+  ansible.builtin.set_fact:
+    gateway_admin_password: >
+      {{ admin_password_secret.resources[0].data.password
+          | b64decode 
+          | string 
+          | trim }}
+  when: admin_password_secret.resources | length > 0  
+
+- name: Find gateway pod mane
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors: app.kubernetes.io/component=aap-gateway
+  register: gateway_pods
+  no_log: "{{ nolog | default(True) }}"    
+
+- name: Find another thing
+  ansible.builtin.set_fact:
+    extracted_name_raw: >
+      {{ gateway_pods.resources
+        | selectattr('status.phase', 'equalto', 'Running')
+        | map(attribute='metadata.name')
+        | first | default('') | string }}
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Clean up pod name
+  ansible.builtin.set_fact:
+    gateway_pod_name: "{{ extracted_name_raw | replace('\n', '') | replace('\r', '') | trim }}"
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Fail sometimes
+  ansible.builtin.fail:
+    msg: "Could not find a running pod with the label 'app=aap-gateway'. Check pod status."
+  when: gateway_pod_name is none or gateway_pod_name | length == 0
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Run aap-gateway-manage command using the existing admin secret value
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ gateway_pod_name }}"
+    container: "api"
+    command: aap-gateway-manage update_password --username admin --password {{ gateway_admin_password }}
+      # bash -c "echo 'from django.contrib.auth import get_user_model; User = get_user_model(); u=User.objects.get(username=\"admin\"); u.set_password(\"{{ gateway_admin_password }}\"); u.save()' | aap-gateway-manage shell"
+  register: command_output
+  changed_when: command_output.rc == 0
+  no_log: "{{ nolog | default(True) }}"  
 
 - name: Get Active CSV Name from Subscription
   kubernetes.core.k8s_info:
