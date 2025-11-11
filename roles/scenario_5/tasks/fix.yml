@@ -28,7 +28,7 @@
     kind: PersistentVolumeClaim
     name: "{{ _scenario_name }}-aap-hub-file-storage"
     namespace: "{{ namespace }}"
-  register: pvc_info 
+  register: pvc_info
 
 - name: Set current Hub Content PVC size fact (in Gi)
   ansible.builtin.set_fact:
@@ -60,7 +60,7 @@
       spec:
         resources:
           requests:
-            storage: "{{ new_size_gi | string | trim }}Gi" 
+            storage: "{{ new_size_gi | string | trim }}Gi"
   when: current_size_gi != new_size_gi
 
 - name: Create AAP custom resource
@@ -98,6 +98,24 @@
 - name: Set Existing Image Name fact
   ansible.builtin.set_fact:
     existing_image_name: "{{ deployment_info.resources[0].spec.template.spec.containers[0].image }}"
+
+- name: Scale down Hub Content deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ _scenario_name }}-aap-hub-content"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-hub-content"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: deployment_scale_status
 
 - name: Update Hub Content Deployment Pod Memory Limits
   kubernetes.core.k8s:
