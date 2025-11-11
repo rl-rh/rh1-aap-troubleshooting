@@ -77,3 +77,27 @@
             msg: |
               There was a failure in setting up the scenario. Please re-run the setup again to see if
               it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
+
+    - name: Fix Block
+      tags: ['never', 'fix']
+      block:
+        - name: Get scenario variables
+          ansible.builtin.include_vars:
+            file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+            hash_behaviour: replace
+
+        # Deploy the scenario
+        - name: Fix scenario
+          ansible.builtin.include_role:
+            name: scenario_{{ scenario_option }}
+            tasks_from: fix.yml
+
+        - name: Final Message
+          ansible.builtin.debug:
+            msg: Things should be good to go now.
+      rescue:
+        - name: Report failure message
+          ansible.builtin.fail:
+            msg: |
+              There was a failure in setting up the scenario. Please re-run the setup again to see if
+              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
