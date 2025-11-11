@@ -121,7 +121,11 @@
                 image: "{{ existing_image_name }}"
                 resources:
                   limits:
+                    cpu: 500m
                     memory: 8Gi
+                  requests:
+                    cpu: 100m
+                    memory: 200Mi
 
 - name: Wait for Hub content to be Fully Ready with 2 Replicas
   kubernetes.core.k8s_info:
