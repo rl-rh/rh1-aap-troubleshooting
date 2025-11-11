@@ -160,7 +160,7 @@
         name: "{{ _scenario_name }}-aap-hub-content"
         namespace: "{{ namespace }}"
       spec:
-        replicas: 1
+        replicas: 2
   register: deployment_scale_up_status                    
 
 - name: Wait for Hub content to be Fully Ready with 2 Replicas
