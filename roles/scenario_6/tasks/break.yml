@@ -1,0 +1,163 @@
+---
+- name: Adjusting some stuff....
+  no_log: "{{ no_log | default(True) }}"
+  block:
+    - name: Set role variables
+      no_log: "{{ nolog | default(True) }}"
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/vars/main.yml"
+        hash_behaviour: replace
+
+    - name: Run Mid-Cycle Pivot Analysis
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ _scenario_name }}-aap-admin-password"
+        namespace: "{{ namespace }}"
+      register: gateway_secret
+
+    - name: Validate the Blueness of the Sky
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-admin-password-secret' not found."
+      when: gateway_secret.resources | length == 0
+
+    - name: Distribute Rainbow Unicorn Dust
+      ansible.builtin.set_fact:
+        adminpw_string_raw: "{{ gateway_secret.resources[0].data.password | b64decode | string }}"
+
+    - name: Looking for That One File
+      ansible.builtin.set_fact:
+        aap_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Unlocking the Daemon's Door
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ _scenario_name }}-aap-gateway-oauth2-token-secret"
+        namespace: "{{ namespace }}"
+      register: oauth_token_secret
+
+    - name: Verifying RFC 1149 Compliance
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-oauth2-token-secret' not found in namespace {{ namespace }}."
+      when: oauth_token_secret.resources | length == 0
+
+    - name: The Answer is 42
+      ansible.builtin.set_fact:
+        token_string_raw: "{{ oauth_token_secret.resources[0].data.token | b64decode | string }}"
+
+    - name: Apply Anti-Gravity Patch
+      ansible.builtin.set_fact:
+        aap_oauth2_token: "{{ token_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Normalize Gherkin Cucumber Relays
+      kubernetes.core.k8s_info:
+        api_version: aap.ansible.com/v1alpha1
+        kind: AnsibleAutomationPlatform
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      register: aap_cr_info
+
+    - name: Ensure Hamsters are Still Running
+      ansible.builtin.set_fact:
+        controller_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+      when: aap_cr_info.resources | length > 0 and
+            aap_cr_info.resources[0].status.URL is defined
+
+    - name: Updating Local Timezone
+      ansible.builtin.fail:
+        msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
+      when: controller_host | length == 0
+
+    - name: Applying the One Ring's Policy
+      ansible.controller.project:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "AAP Troubleshooting Demo"
+        organization: "Default"
+        scm_type: git
+        scm_url: "https://github.com/rl-rh/rh1-aap-troubleshooting.git"
+        scm_branch: "main"
+        scm_update_on_launch: false
+        state: present
+
+    - name: Checking for Kernel Panic Puppies
+      ansible.controller.inventory:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "RH1 Inventory"
+        description: "Inventory for RH1 Troubleshooting Labs"
+        organization: "Default"
+        state: present
+      register: inventory_creation_status
+
+    - name: Enabling the Side-Channel Flange
+      ansible.controller.host:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        inventory: "RH1 Inventory"
+        name: "localhost"
+        state: present
+        variables:
+          ansible_connection: local
+          ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      register: host_creation_status
+
+    - name: Dialing the Stargate Address
+      ansible.controller.execution_environment:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "RH1-EE1"
+        image: "quay.io/rh-ee-rlaroy/ryan:latest"
+        organization: "Default"
+        state: present
+      register: ee_status
+
+    - name: Nothing to See Here
+      ansible.controller.job_template:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "{{ item.name }}"
+        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default"
+        project: "AAP Troubleshooting Demo"
+        inventory: "RH1 Inventory"
+        execution_environment: "Default execution environment"
+        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        - { name: "RH1-T1", suffix: 1 }
+        - { name: "RH1-T2", suffix: 2 }
+        - { name: "RH1-T3", suffix: 3 }
+
+    - name: Consult the Magic 8-Ball API
+      ansible.controller.job_template:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "{{ item.name }}"
+        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default"
+        project: "AAP Troubleshooting Demo"
+        inventory: "RH1 Inventory"
+        execution_environment: "RH1-EE1"
+        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        - { name: "RH1-T4", suffix: 4 }
+
+    - name: Log in to AAP, run RH1-T1 through RH1-T4 Job Templates
+      ansible.builtin.debug: 
+        msg: |-
+          Log in to AAP, run RH1-T1 through RH1-T4 Job Templates.
+          Find out whats failing
+      no_log: false
