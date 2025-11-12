@@ -155,6 +155,37 @@
       loop:
         - { name: "RH1-T4", suffix: 4 }
 
+    - name: Optimize the Digital Feedback Loop
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: DNS
+        name: cluster
+      register: dns_info
+      
+    - name: Set cluster_base_domain fact
+      ansible.builtin.set_fact:
+        cluster_base_domain: "{{ dns_info.resources[0].spec.baseDomain }}"
+
+    - name: Deleting the Matrix Backup
+      kubernetes.core.k8s:
+        api_version: route.openshift.io/v1
+        kind: Route
+        name: aap-short
+        namespace: "{{ namespace }}"
+        state: present
+        definition:
+          spec:
+            host: "aap.apps.{{ cluster_base_domain }}"
+            to:
+              kind: Service
+              name: "{{ _scenario_name }}-aap"
+              weight: 100
+            port:
+              targetPort: http
+            tls:
+              termination: edge
+              insecureEdgeTerminationPolicy: Redirect        
+
     - name: Log in to AAP, run RH1-T1 through RH1-T4 Job Templates
       ansible.builtin.debug: 
         msg: |-
