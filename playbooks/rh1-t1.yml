@@ -1,6 +1,6 @@
 ---
 - name: Hello World Loop Demo
-  hosts: localhost
+  hosts: all
   connection: local
   gather_facts: no
 
