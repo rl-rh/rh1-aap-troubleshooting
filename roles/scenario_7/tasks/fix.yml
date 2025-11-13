@@ -152,7 +152,7 @@
       - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
       - "app.kubernetes.io/component=ansible-lightspeed-chatbot-api"
 
-- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times). This takes a while
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
   kubernetes.core.k8s_info:
     api_version: lightspeed.ansible.com/v1alpha1 
     kind: AnsibleLightspeed
@@ -168,14 +168,14 @@
       selectattr('status', 'equalto', 'True') | 
       list | length > 0
 
-- name: Still working on lightspeed.... 
+- name: Waiting for Lightspeed reconciliation to complete
   ansible.builtin.debug:
     msg: "Waiting for Lightspeed reconciliation to complete... (Current status: {{ lightspeed_status.resources[0].status.phase | default('Initializing') }})"
   when: 
     lightspeed_status is failed and 
     lightspeed_status.resources | length > 0
 
-- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times). This takes a while
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
   kubernetes.core.k8s_info:
     api_version: lightspeed.ansible.com/v1alpha1 
     kind: AnsibleLightspeed
