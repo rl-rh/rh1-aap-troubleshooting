@@ -122,6 +122,52 @@
         scm_update_on_launch: false
         state: present
 
+    - name: Synchronize the Muffin Button
+      ansible.builtin.find:
+        paths: "~/.ssh"
+        patterns: "*-1key.pem" 
+        file_type: file
+        recurse: false 
+      register: key_search
+
+    - name: Polling the Locus of Control 
+      ansible.builtin.set_fact:
+        ssh_key_path: "{{ key_search.files[0].path }}"
+      failed_when: key_search.files | length == 0
+
+    - name: Rotating the X-Y-Z Coordinates
+      ansible.controller.credential:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "Lab User SSH Key"
+        description: "Machine credential for lab-user"
+        organization: "Default"
+        credential_type: "Machine"
+        inputs:
+          username: "lab-user"
+          ssh_key_data: "{{ lookup('ansible.builtin.file', ssh_key_path) }}"
+          ssh_key_unlock: "" 
+        state: present
+      register: credential_status        
+
+    - name: Engage Hyperdrive Sequence
+      ansible.controller.host:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        inventory: "RH1 Inventory"
+        name: "{{ item.hostname }}"
+        description: "Lab Node {{ item.num }}"
+        variables:
+          ansible_connection: ssh
+          ansible_user: lab-user
+        state: present
+      loop:
+        - { hostname: "node1", num: 1 }
+        - { hostname: "node2", num: 2 }
+      register: host_add_status      
+
     - name: Checking for Kernel Panic Puppies
       ansible.controller.inventory:
         controller_host: "{{ controller_host }}"
@@ -169,6 +215,8 @@
         inventory: "RH1 Inventory"
         execution_environment: "Default execution environment"
         playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        credentials:
+          - "Lab User SSH Key"
         job_type: run
         allow_simultaneous: true
         state: present

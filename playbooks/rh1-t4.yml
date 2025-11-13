@@ -1,12 +1,10 @@
 ---
 - name: Hello World Loop Demo
-  hosts: localhost
-  connection: local
-  gather_facts: no
+  hosts: all
 
   tasks:
     - name: Print "Hello, World!" five times
       ansible.builtin.debug:
-        msg: "Hello, Red Hat One! This is a demo playbook in RH1-T4 (Iteration {{ item }})"
+        msg: "Hello, Red Hat One! This is a demo playbook in RH1-T4 (Iteration {{ item }}) from host {{ ansible_fqdn }}"
       # The loop will iterate over the list [1, 2, 3, 4, 5]
       loop: [1, 2, 3, 4, 5]
