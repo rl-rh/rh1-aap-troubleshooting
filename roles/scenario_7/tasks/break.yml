@@ -12,7 +12,7 @@
     ansible.builtin.setup:
       filter: "ansible_date_time"
 
-  - name: Set facts
+  - name: Taking a Short Nap
     ansible.builtin.set_fact:
       break_model: granite-8b-code-instruct-128k
       break_url: https://litellm-admin.apps.maas.redhatworkshops.io/api
