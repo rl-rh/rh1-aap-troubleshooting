@@ -1,0 +1,9 @@
+---
+
+controller_projects:
+  - name: AAP Troubleshooting Demo
+    organization: Default
+    scm_type: git
+    scm_url: "https://github.com/rl-rh/rh1-aap-troubleshooting.git"
+    scm_branch: "main"
+    scm_update_on_launch: false

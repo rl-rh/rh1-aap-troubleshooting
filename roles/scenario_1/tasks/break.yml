@@ -1,0 +1,80 @@
+---
+
+- name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Gather some facts
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.setup:
+    filter: "ansible_date_time"
+
+- name: Making a configuration change to improve things
+  no_log: "{{ nolog | default(True) }}"
+  kubernetes.core.k8s:
+    state: patched
+    api_version: automationcontroller.ansible.com/v1beta1
+    kind: AutomationController
+    name: "{{ _scenario_name }}-controller"
+    namespace: "{{ namespace }}"
+    definition:
+      spec:
+        postgres_resource_requirements:
+          requests:
+            cpu: '5m'
+            memory: '10Mi'
+          limits:
+            cpu: '5m'
+            memory: '10Mi'
+
+- name: Let's see if this makes things better
+  no_log: "{{ nolog | default(True) }}"
+  register: pod_info
+  delay: 30
+  retries: 10
+  until:
+    - pod_info.resources | length > 0
+    - pod_info.resources[0].status.phase != "Running"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    name: "{{ _scenario_name }}-controller-postgres-15-0"
+    namespace: "{{ namespace }}"
+
+- name: Hmm...I don't think that helped....let's try something new
+  no_log: "{{ nolog | default(True) }}"
+  kubernetes.core.k8s:
+    state: patched
+    api_version: automationcontroller.ansible.com/v1beta1
+    kind: AutomationController
+    name: "{{ _scenario_name }}-controller"
+    namespace: "{{ namespace }}"
+    definition:
+      spec:
+        auto_upgrade: false
+
+# - name: Whoops....dropped the hammer....
+#   no_log: "{{ nolog | default(True) }}"
+#   kubernetes.core.k8s:
+#     state: absent
+#     api_version: v1
+#     kind: Service
+#     name: "{{ _scenario_name }}-controller-postgres-15"
+#     namespace: "{{ namespace }}"
+
+# - name: Uh oh...you are really not going to like this!
+#   no_log: "{{ nolog | default(True) }}"
+#   vars:
+#     restart_time: "{{ ansible_date_time.iso8601 | default(ansible_date_time.date ~ 'T' ~ ansible_date_time.time) }}"
+#   loop: ['task', 'web']
+#   kubernetes.core.k8s_json_patch:
+#     api_version: apps/v1
+#     kind: Deployment
+#     name: "{{ _scenario_name }}-controller-{{ item }}"
+#     namespace: "{{ namespace }}"
+#     patch:
+#       - op: replace
+#         path: /spec/template/metadata/annotations/kubectl.kubernetes.io~1restartedAt
+#         value: "{{ restart_time }}"
