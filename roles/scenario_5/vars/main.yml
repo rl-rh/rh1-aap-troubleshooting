@@ -1,0 +1,6 @@
+---
+
+_scenario_name: "aap-rh1"
+hub_file_access_mode: ReadWriteMany
+hub_file_storage_size: 25Mi
+hub_file_storage_class: ocs-external-storagecluster-cephfs

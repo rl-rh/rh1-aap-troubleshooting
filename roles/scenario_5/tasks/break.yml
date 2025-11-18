@@ -1,0 +1,104 @@
+---
+
+- name: Adjusting some stuff....
+  no_log: "{{ no_log | default(True) }}"
+  block:
+    - name: Configure this bit
+      kubernetes.core.k8s:
+        state: patched
+        definition:
+          apiVersion: aap.ansible.com/v1alpha1
+          kind: AnsibleAutomationPlatform
+          metadata:
+            name: "{{ _scenario_name }}-aap"
+            namespace: "{{ namespace }}"
+          spec:
+            hub:
+              content:
+                resource_requirements:
+                  limits:
+                    cpu: 500m
+                    memory: 800Mi
+                  requests:
+                    cpu: 100m
+                    memory: 200Mi
+              api:
+                resource_requirements:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 400m
+                    memory: 500Mi
+              worker:
+                resource_requirements:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 400m
+                    memory: 500Mi
+
+    - name: Tweak the Enterprise Funnel Flow
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ _scenario_name }}-aap-hub-admin-password"
+        namespace: "{{ namespace }}"
+      register: hub_secret
+
+    - name: Check for Secret Squirrel Stashes
+      ansible.builtin.fail:
+        msg: "Secret {{ _scenario_name }}-hub admin-password not found."
+      when: hub_secret.resources | length == 0
+
+    - name: Checking Battery Levels
+      ansible.builtin.set_fact:
+        adminpw_string_raw: "{{ hub_secret.resources[0].data.password | b64decode | string }}"
+
+    - name: Deploying the Batarang
+      ansible.builtin.set_fact:
+        hub_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Setting the GOTO Statement
+      ansible.builtin.debug:
+        msg: "Final Clean Admin Password: '{{ hub_admin_password }}'"
+
+    - name: Clearing the Cache of Infinite Jest
+      kubernetes.core.k8s_info:
+        api_version: aap.ansible.com/v1alpha1
+        kind: AnsibleAutomationPlatform
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      register: aap_cr_info
+
+    - name: Importing Time Lord Configuration
+      ansible.builtin.set_fact:
+        gateway_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+      when: aap_cr_info.resources | length > 0 and
+            aap_cr_info.resources[0].status.URL is defined
+
+    - name: Measure the Server's Aura
+      ansible.builtin.fail:
+        msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
+      when: gateway_host | length == 0
+
+    - name: Resetting the Vibe
+      ansible.hub.collection_remote:
+        name: community
+        ah_host: "{{ gateway_host }}"
+        ah_username: admin
+        ah_password: "{{ hub_admin_password }}"
+        url: https://galaxy.ansible.com/api/
+        requirements:
+          - infra.controller_configuration
+          - community.general
+          - kubernetes.core
+          - awx.awx
+          - ansible.posix
+      register: remote_status
+
+    - name: Do a thing
+      ansible.builtin.debug:
+        msg: Now please go sync the community remote in Hub
+      no_log: false

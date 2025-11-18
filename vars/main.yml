@@ -2,12 +2,7 @@
 
 scenarios_allowed:
   - 1
-<<<<<<< HEAD
-<<<<<<< HEAD
   - 2
-=======
   - 3
->>>>>>> origin/scenario-3
-=======
   - 4
->>>>>>> origin/scenario-4
+  - 5
