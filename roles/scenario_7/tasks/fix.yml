@@ -1,0 +1,197 @@
+---
+
+- name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Set the table
+  ansible.builtin.set_fact:
+    user_confirmation: "no"
+
+- name: Find the issue?
+  ansible.builtin.pause:
+    prompt: |-
+      Did you figure out and fix the issues? There were two issues.
+      (yes or no)
+      (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
+    echo: yes
+  register: confirmation_input
+  until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
+  retries: 99999
+  delay: 0
+
+- name: Scale down Lightspeed API deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ _scenario_name }}-aap-lightspeed-api"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-lightspeed-api"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: api_deployment_scale_status
+
+- name: Scale down Lightspeed Chatbot API deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ _scenario_name }}-aap-lightspeed-chatbot-api"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-lightspeed-chatbot-api"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: chatbot_deployment_scale_status
+
+- name: Scale down Lightspeed operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "ansible-lightspeed-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "ansible-lightspeed-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: chatbot_deployment_scale_status
+
+- name: Apply correct model
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Secret
+    name: chatbot-configuration-secret
+    namespace: "{{ namespace }}"
+    state: patched
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: chatbot-configuration-secret
+        namespace: "{{ namespace }}"
+      type: Opaque
+      data:
+        chatbot_llm_provider_type: "{{ chatbot_llm_provider_type | b64encode }}"
+        chatbot_model: "{{ chatbot_model | b64encode }}"
+        chatbot_token: "{{ chatbot_token | b64encode }}"
+        chatbot_url: "{{ chatbot_url | b64encode }}"
+
+- name: Scale up Lightspeed operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "ansible-lightspeed-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "ansible-lightspeed-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 1
+  register: chatbot_operator_scale_status
+
+- name: wait a few
+  ansible.builtin.pause:
+    seconds: 30
+
+- name: Wait for lightspeed api pod
+  register: _lightspeed_api_pod
+  retries: 60
+  delay: 20
+  until:
+    - _lightspeed_api_pod['resources'] | length
+    - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first is defined
+    - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
+      - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
+      - "app.kubernetes.io/component=ansible-lightspeed-api"
+
+- name: Wait for lightspeed chatbot api pod
+  register: _lightspeed_chatbot_api_pod
+  retries: 60
+  delay: 20
+  until:
+    - _lightspeed_chatbot_api_pod['resources'] | length
+    - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first is defined
+    - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
+      - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
+      - "app.kubernetes.io/component=ansible-lightspeed-chatbot-api"
+
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
+  kubernetes.core.k8s_info:
+    api_version: lightspeed.ansible.com/v1alpha1 
+    kind: AnsibleLightspeed
+    name: "{{ _scenario_name }}-aap-lightspeed"
+    namespace: "{{ namespace }}"
+  register: lightspeed_status
+  retries: 60 
+  delay: 10
+  until: 
+      lightspeed_status.resources | length > 0 and 
+      lightspeed_status.resources[0].status.conditions | 
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') | 
+      list | length > 0
+
+- name: Waiting for Lightspeed reconciliation to complete
+  ansible.builtin.debug:
+    msg: "Waiting for Lightspeed reconciliation to complete... (Current status: {{ lightspeed_status.resources[0].status.phase | default('Initializing') }})"
+  when: 
+    lightspeed_status is failed and 
+    lightspeed_status.resources | length > 0
+
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
+  kubernetes.core.k8s_info:
+    api_version: lightspeed.ansible.com/v1alpha1 
+    kind: AnsibleLightspeed
+    name: "{{ _scenario_name }}-aap-lightspeed"
+    namespace: "{{ namespace }}"
+  register: lightspeed_status
+  retries: 60 
+  delay: 10
+  until: 
+      lightspeed_status.resources | length > 0 and 
+      lightspeed_status.resources[0].status.conditions | 
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') | 
+      list | length > 0    
+
+- name: Verify Lightspeed Status
+  ansible.builtin.debug:
+    msg: "AnsibleLightspeed CR is now in a Successful state."
+  when: lightspeed_status is success 
