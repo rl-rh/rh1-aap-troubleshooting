@@ -1,0 +1,14 @@
+---
+
+argument_specs:
+  main:
+    short_description: Role for Scenario 2
+    description:
+      - Role that sets up an OpenShift namespace for Scenario 2.
+    author:
+      - Max Mitschke
+      - Ryan LaRoy
+    options:
+      namespace:
+        type: str
+        required: true
