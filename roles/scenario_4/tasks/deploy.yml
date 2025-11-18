@@ -1,0 +1,64 @@
+---
+
+- name: Set role variables
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Create AAP custom resource
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        eda:
+          disabled: true
+        route_tls_termination_mechanism: Edge
+        redis_mode: standalone
+        image_pull_policy: IfNotPresent
+        hub:
+          disabled: false
+          file_storage_access_mode: "{{ hub_file_access_mode }}"
+          file_storage_size: "{{ hub_file_storage_size }}"
+          file_storage_storage_class: "{{ hub_file_storage_class }}"
+          storage_type: file
+        controller:
+          disabled: false
+
+- name: Wait for Automation Controller pod
+  register: _controller_pod
+  retries: 60
+  delay: 20
+  until:
+    - _controller_pod['resources'] | length
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first is defined
+    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap-controller-task"
+      - "app.kubernetes.io/managed-by=automationcontroller-operator"
+      - "app.kubernetes.io/component=automationcontroller"
+
+- name: Wait for Automation Hub API pod
+  register: _hub_pod
+  retries: 60
+  delay: 15
+  until:
+    - _hub_pod['resources'] | length
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name=automationhub-api"
+      - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
+      - "app.kubernetes.io/component=api"

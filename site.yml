@@ -100,4 +100,8 @@
           ansible.builtin.fail:
             msg: |
               There was a failure in setting up the scenario. Please re-run the setup again to see if
+<<<<<<< HEAD
               it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.              
+=======
+              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.                  
+>>>>>>> origin/scenario-4
