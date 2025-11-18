@@ -24,8 +24,7 @@
       tags: always
       ansible.builtin.assert:
         that:
-          - scenario_option is integer
-          - scenario_option in scenarios_allowed
+          - scenario_option|int in scenarios_allowed
         fail_msg: "Scenario '{{ scenario_option }}' not found"
 
     - name: Deployment Block
