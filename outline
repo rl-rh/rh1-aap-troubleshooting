@@ -7,19 +7,8 @@ Module 1 (5 minutes)
 			Namespace wide must-gather
 		Enabling logging
 Installing 2.5 operator
-<<<<<<< HEAD
-	-- Wrong storage class- Step 2 - scenario 2
-	-- 	No default SC defined- 
-	-- 	Hub has wrong storage class defined
-	-- Low quotas set on namespace- set in step 2. Wont notice until step 3 - just delete quotas, much easier - scenario 1
-	-- Pgsql db oomkilled due to low limits- set in step 2, wont notice until step 3- scenario 1
-	-- Controller auto_upgrade set to false after deployment - configured in step 3, wont notice until step 4  deploy old version, do above steps, update cr to do non auto-update, set sub to automatic, send it. - scenario 1
-	-- ImagePullBackoff error
-	-- 	Using another repository (quay with custom ees) - Done Step 8 - scenario 6
-	-- 	Global pull secret from registry.redhat.io
-=======
 	Wrong storage class- Step 2 - scenario 2
-		No default SC defined- 
+		No default SC defined-
 		Hub has wrong storage class defined
 	Low quotas set on namespace- set in step 2. Wont notice until step 3 - just delete quotas, much easier - scenario 1
 	Pgsql db oomkilled due to low limits- set in step 2, wont notice until step 3- scenario 1
@@ -27,7 +16,6 @@ Installing 2.5 operator
 	ImagePullBackoff error
 		Using another repository (quay with custom ees) - Done Step 8
 		Global pull secret from registry.redhat.io
->>>>>>> origin/scenario-2
 Configuring
 	-- Gateway reset admin password. step 5 - scenario 3
 	-- 	Unable to login with admin secret in UI - done
@@ -55,4 +43,3 @@ Performance/Usage
 		Increase web pod replicas or disable operator and increase deployments
 	EDA activations stuck in pending state
 		EDA scheduler set to 0
-
