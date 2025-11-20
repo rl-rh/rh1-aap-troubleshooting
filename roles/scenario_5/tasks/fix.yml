@@ -41,7 +41,7 @@
       10
       {% else %}
       {{ current_size_gi | int }}
-      {% endif %}
+      {% endif %}         
 
 - name: Apply the calculated Hub Content PVC size change
   kubernetes.core.k8s:
@@ -83,7 +83,7 @@
                 cpu: 100m
                 memory: 200Mi
           file_storage_access_mode: "{{ hub_file_access_mode }}"
-          file_storage_size: 10Gi
+          file_storage_size: "{{ new_size_gi | string | trim }}Gi"
           file_storage_storage_class: "{{ hub_file_storage_class }}"
           storage_type: file
 
