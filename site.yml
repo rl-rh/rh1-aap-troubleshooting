@@ -108,7 +108,7 @@
         - name: Get scenario variables
           ansible.builtin.include_vars:
             file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
-            hash_behaviour: replace      
+            hash_behaviour: replace
 
         - name: First Confirmation - Are you sure?
           ansible.builtin.pause:
@@ -123,36 +123,40 @@
           register: confirmation_two
           when: confirmation_one.user_input | lower == 'yes'
 
-        - name: Delete Project Resource
+        - name: Delete Project Resource and Wait for Deletion
           kubernetes.core.k8s:
             api_version: project.openshift.io/v1
             kind: Project
             name: "{{ namespace }}"
             state: absent
+            wait: yes
+            wait_timeout: 300
+            wait_sleep: 5
+            wait_condition:
+              type: Absent
+              status: True
           register: delete_status
-          when: 
-            confirmation_one.user_input | lower == 'yes' and 
+          when:
+            confirmation_one.user_input | lower == 'yes' and
             confirmation_two.user_input | upper == 'I AM SURE'
 
-        - name: Display Final Status
+        - name: Deletion Complete
           ansible.builtin.debug:
             msg: "Project '{{ namespace }}' was successfully deleted."
-          when: delete_status is changed and delete_status is succeeded
+          when:
+            delete_status is changed and
+            delete_status is succeeded and
+            confirmation_one.user_input | lower == 'yes'
 
         - name: No action taken (User typed 'no' in first prompt)
           ansible.builtin.debug:
-            msg: "✅ Deletion aborted. Nothing has been deleted or modified as per your instruction."
+            msg: "Deletion aborted. Nothing has been deleted or modified as per your instruction."
           when: confirmation_one.user_input | lower == 'no'
 
         - name: Invalid input (User typed something other than 'yes' or 'no')
           ansible.builtin.debug:
-            msg: "⚠️ Action failed. Your input ('{{ confirmation_one.user_input }}') was not recognized. Please rerun the playbook and type 'yes' to proceed with deletion, or 'no' to safely abort."
-          when: 
-            confirmation_one.user_input is defined and 
-            confirmation_one.user_input | lower != 'yes' and 
+            msg: "Action failed. Your input ('{{ confirmation_one.user_input }}') was not recognized. Please rerun the playbook and type 'yes' to proceed with deletion, or 'no' to safely abort."
+          when:
+            confirmation_one.user_input is defined and
+            confirmation_one.user_input | lower != 'yes' and
             confirmation_one.user_input | lower != 'no'
-
-        - name: Deletion Complete
-          ansible.builtin.debug:
-            msg: "💥 Project '{{ namespace }}' was successfully deleted."
-          when: delete_status is changed and delete_status is succeeded          
