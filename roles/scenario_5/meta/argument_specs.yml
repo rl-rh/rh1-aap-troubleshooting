@@ -2,9 +2,9 @@
 
 argument_specs:
   main:
-    short_description: Role for Scenario 1
+    short_description: Role for Scenario 5
     description:
-      - Role that sets up an OpenShift namespace for Scenario 1.
+      - Role that sets up an OpenShift namespace for Scenario 5.
     author:
       - Max Mitschke
       - Ryan LaRoy
