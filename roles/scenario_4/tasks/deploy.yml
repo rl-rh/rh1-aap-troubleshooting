@@ -29,6 +29,23 @@
         controller:
           disabled: false
 
+- name: Wait for Gateway pod
+  register: _gateway_pod
+  retries: 60
+  delay: 20
+  until:
+    - _gateway_pod['resources'] | length
+    - _gateway_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    - _gateway_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap"
+      - "app.kubernetes.io/managed-by=aap-operator"
+      - "app.kubernetes.io/component=aap-gateway"  
+
 - name: Wait for Automation Controller pod
   register: _controller_pod
   retries: 60
@@ -62,3 +79,26 @@
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
       - "app.kubernetes.io/component=api"
+
+- name: Wait for AAP CR to be Ready and URL to be Populated
+  kubernetes.core.k8s_info:
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace }}"
+  register: aap_status
+  retries: 80
+  delay: 10
+  until: 
+    aap_status.resources | length > 0 and
+    aap_status.resources[0].status.conditions | 
+      selectattr('type', 'equalto', 'Successful') | 
+      selectattr('status', 'equalto', 'True') | 
+      list | length > 0 and
+    aap_status.resources[0].status.URL is defined and 
+    aap_status.resources[0].status.URL | length > 0
+
+- name: Display Final URL
+  ansible.builtin.debug:
+    msg: "Ansible Automation Platform is Ready. Access URL: {{ aap_status.resources[0].status.URL }}"
+  when: aap_status is success      

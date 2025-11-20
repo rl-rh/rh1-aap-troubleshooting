@@ -88,7 +88,7 @@
     name: "{{ _scenario_name }}-aap"
     namespace: "{{ namespace }}"
   register: aap_status
-  retries: 80 # Check for up to 13 minutes
+  retries: 80
   delay: 10
   until: 
     aap_status.resources | length > 0 and
