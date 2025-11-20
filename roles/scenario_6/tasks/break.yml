@@ -149,7 +149,18 @@
           ssh_key_data: "{{ lookup('ansible.builtin.file', ssh_key_path) }}"
           ssh_key_unlock: "" 
         state: present
-      register: credential_status        
+      register: credential_status     
+
+    - name: Checking for Kernel Panic Puppies
+      ansible.controller.inventory:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "RH1 Inventory"
+        description: "Inventory for RH1 Troubleshooting Labs"
+        organization: "Default"
+        state: present
+      register: inventory_creation_status         
 
     - name: Engage Hyperdrive Sequence
       ansible.controller.host:
@@ -167,17 +178,6 @@
         - { hostname: "node1", num: 1 }
         - { hostname: "node2", num: 2 }
       register: host_add_status      
-
-    - name: Checking for Kernel Panic Puppies
-      ansible.controller.inventory:
-        controller_host: "{{ controller_host }}"
-        controller_oauthtoken: "{{ aap_oauth2_token }}"
-        validate_certs: false
-        name: "RH1 Inventory"
-        description: "Inventory for RH1 Troubleshooting Labs"
-        organization: "Default"
-        state: present
-      register: inventory_creation_status
 
     - name: Enabling the Side-Channel Flange
       ansible.controller.host:
