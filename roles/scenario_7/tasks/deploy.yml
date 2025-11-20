@@ -13,9 +13,14 @@
     namespace: "{{ namespace }}"
   register: pvc_info
 
-- name: Set current Hub Content PVC size fact (in Gi)
+- name: Set current Hub Content PVC size fact (with 0 default if missing)
   ansible.builtin.set_fact:
-    current_size_gi: "{{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}"
+    current_size_gi: >
+      {% if pvc_info.resources | length > 0 %}
+      {{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}
+      {% else %}
+      0
+      {% endif %}
 
 - name: Calculate the required new PVC size
   ansible.builtin.set_fact:
