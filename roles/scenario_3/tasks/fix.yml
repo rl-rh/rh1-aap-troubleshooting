@@ -151,3 +151,56 @@
   register: csv_revert_status
   changed_when: csv_revert_status.rc == 0 and ('patched' in csv_revert_status.stdout or 'patched' in csv_revert_status.stderr)
   failed_when: csv_revert_status.rc != 0
+
+- name: Scale down Hub operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "automation-hub-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "automation-hub-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: hub_deployment_scale_status
+
+- name: Scale up Hub operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "automation-hub-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "automation-hub-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 1
+  register: hub_deployment_scale_status  
+
+- name: Wait for Automation Hub API pod
+  register: _hub_pod
+  retries: 60
+  delay: 15
+  until:
+    - _hub_pod['resources'] | length
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
+    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name=automationhub-api"
+      - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
+      - "app.kubernetes.io/component=api"    
