@@ -101,8 +101,8 @@
               There was a failure in setting up the scenario. Please re-run the setup again to see if
               it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
 
-    - name: Cleanup Block
-      tags: ['never', 'cleanup']
+    - name: Destroy Block
+      tags: ['never', 'destroy']
       block:
 
         - name: Get scenario variables
