@@ -15,7 +15,7 @@
   - name: Taking a Short Nap
     ansible.builtin.set_fact:
       break_model: granite-8b-code-instruct-128k
-      break_url: https://litellm-admin.apps.maas.redhatworkshops.io/api
+      break_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
 
   - name: Perform Level 7 Compliance Yoga
     kubernetes.core.k8s:
@@ -35,7 +35,7 @@
           chatbot_llm_provider_type: "{{ chatbot_llm_provider_type | b64encode }}"
           chatbot_model: "{{ break_model | b64encode }}"
           chatbot_token: "{{ chatbot_token | b64encode }}"
-          chatbot_url: "{{ break_url | b64encode }}" 
+          chatbot_url: "{{ break_url | b64encode }}"
 
   - name: Re-platform the Core Data Spigot
     kubernetes.core.k8s:
@@ -66,7 +66,7 @@
       label_selectors:
         - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
         - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
-        - "app.kubernetes.io/component=ansible-lightspeed-api"          
+        - "app.kubernetes.io/component=ansible-lightspeed-api"
 
   - name: Preparing for Next Tuesday
     register: _lightspeed_chatbot_api_pod
@@ -90,4 +90,4 @@
       msg: |-
         Log in to AAP, figure out why ALIA icon won't come up
         Find out whats failing
-    no_log: false      
+    no_log: false
