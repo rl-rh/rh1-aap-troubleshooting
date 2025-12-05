@@ -14,7 +14,7 @@
 
   - name: Taking a Short Nap
     ansible.builtin.set_fact:
-      break_model: granite-8b-code-instruct-128k
+      break_model: codellama-7b-instruct
       break_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
 
   - name: Perform Level 7 Compliance Yoga
