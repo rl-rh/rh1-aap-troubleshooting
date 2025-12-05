@@ -32,7 +32,6 @@
           namespace: "{{ namespace }}"
         type: Opaque
         data:
-          chatbot_llm_provider_type: "{{ chatbot_llm_provider_type | b64encode }}"
           chatbot_model: "{{ break_model | b64encode }}"
           chatbot_token: "{{ chatbot_token | b64encode }}"
           chatbot_url: "{{ break_url | b64encode }}"
