@@ -1,31 +1,56 @@
 ---
 
+- name: Playbook Checks
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check for available scenarios
+      register: _scenarios_found
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/roles"
+        patterns: "scenario_[0-9]*"
+        use_regex: true
+        file_type: directory
+
+    - name: Store scenarios in fact
+      ansible.builtin.set_fact:
+        scenarios_allowed: "{{ range(1, _scenarios_found.files | length | int + 1) | list }}"
+
 - name: Scenario Setup Playbook
   hosts: all
   gather_facts: false
-
-  vars_files:
-    - "{{ playbook_dir }}/vars/main.yml"
-
-  vars_prompt:
-    - name: scenario_option
-      private: no
-      prompt: |-
-
-        Please choose an option:
-          {% for i in scenarios_allowed %}
-          {{ i }}. Scenario #{{ i }}
-          {% endfor %}
-
-        Enter the number corresponding to your choice
-
   tasks:
-    - name: Check if selected option is a scenario
+    - name: User input
+      when: scenario_option is not defined | default(true)
       tags: always
-      ansible.builtin.assert:
-        that:
-          - scenario_option|int in scenarios_allowed
-        fail_msg: "Scenario '{{ scenario_option }}' not found"
+      block:
+        - name: Choose a scenario
+          register: _user_input
+          ansible.builtin.pause:
+            prompt: |-
+              {% for i in hostvars['localhost']['scenarios_allowed'] %}
+              {{ i }}. Scenario #{{ i }}
+              {% endfor %}
+
+              Enter the number corresponding to your choice
+
+        - name: Set user input to variable
+          ansible.builtin.set_fact:
+            scenario_option: "{{ _user_input.user_input }}"
+
+    - name: Check if selected option is a scenario
+      ignore_errors: true
+      register: _scenario_role
+      tags: always
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/roles/scenario_{{ scenario_option | int }}"
+
+    - name: Print message if scenario not found
+      when: not _scenario_role.stat.exists
+      tags: always
+      ansible.builtin.fail:
+        msg: "Scenario #{{ scenario_option | int }} not found."
 
     - name: Deployment Block
       tags: ['deploy']
