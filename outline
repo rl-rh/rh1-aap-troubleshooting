@@ -37,6 +37,7 @@ Troubleshooting
 	-- 	Hub pvc too small
 	-- 	Or requests/limits too small on content pod
 	2.4 to 2.5/6 upgrade issues
+	- Deploy AAP with redis cluster, then delete the store of redis cluster which should break the eda.
 Performance/Usage
 	HTTP 503 error
 		Launch a bunch of requests to prov callback

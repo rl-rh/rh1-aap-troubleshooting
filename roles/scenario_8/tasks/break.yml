@@ -1,0 +1,55 @@
+---
+
+- name: Don't peak...
+  no_log: "{{ nolog | default(true) }}"
+  register: _source_secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-eda-db-fields-encryption-secret"
+    namespace: "{{ namespace }}"
+
+- name: I said don't peak...
+  no_log: "{{ nolog | default(true) }}"
+  when: _source_secret.resources | length > 0
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ _scenario_name }}-aap-eda-db-fields-encryption-secret-2"
+        namespace: "{{ namespace }}"
+        labels: "{{ _source_secret.resources[0].metadata.labels | default({}) }}"
+      type: "{{ _source_secret.resources[0].type }}"
+      data: "{{ _source_secret.resources[0].data }}"
+
+- name: OK. You are not going to like what just happened...
+  no_log: "{{ nolog | default(true) }}"
+  when: _source_secret.resources | length > 0
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ _scenario_name }}-aap-eda-db-fields-encryption-secret"
+        namespace: "{{ namespace }}"
+      stringData:
+        secret_key: "whte_rbt.obj" # Let me know if you catch this reference
+
+- name: OK...Lets reboot this whole OpenShift cluster!
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-eda-api"
+        namespace: "{{ namespace }}"
+      spec:
+        template:
+          metadata:
+            annotations:
+              kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -Iseconds') }}"

@@ -1,0 +1,167 @@
+---
+
+- name: Set role variables
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Create AAP custom resource
+  no_log: "{{ nolog | default(True) }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        eda:
+          disabled: false
+          activation_worker:
+            replicas: 0
+        hub:
+          disabled: true
+        controller:
+          disabled: false
+        lightspeed:
+          disabled: true
+
+- name: Wait for AAP CR to be Ready and URL to be Populated
+  kubernetes.core.k8s_info:
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace }}"
+  register: aap_status
+  retries: 80 # Check for up to 13 minutes
+  delay: 10
+  until:
+    aap_status.resources | length > 0 and
+    aap_status.resources[0].status.conditions |
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') |
+      list | length > 0 and
+    aap_status.resources[0].status.URL is defined and
+    aap_status.resources[0].status.URL | length > 0
+
+- name: Get admin password
+  register: _admin_password
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}"
+
+- name: Get route
+  register: _route_info
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace}}"
+
+- name: Set credentials to internal variable
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.set_fact:
+    aap_hostname: "https://{{ _route_info.resources[0].spec.host }}"
+    aap_username: admin
+    aap_password: "{{ _admin_password.resources[0].data['password'] | b64decode }}"
+
+- name: Create Credential - RH AAP
+  ansible.eda.credential:
+    name: RH AAP Credential
+    credential_type_name: Red Hat Ansible Automation Platform
+    organization_name: Default
+    inputs:
+      host: "{{ aap_hostname }}"
+      username: admin
+      password: admin
+      verify_ssl: false
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Credential - Basic Event Stream
+  ansible.eda.credential:
+    name: Basic Event Stream Credential
+    credential_type_name: Basic Event Stream
+    organization_name: Default
+    inputs:
+      username: "admin"
+      password: "admin"
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Decision Environment
+  ansible.eda.decision_environment:
+    name: "Decision Environment - {{ _scenario_name }}"
+    image_url: "registry.redhat.io/ansible-automation-platform-26/de-supported-rhel9:latest"
+    #image_url: "registry.redhat.io/ansible-automation-platform-24/de-supported-rhel8:latest"
+    organization_name: Default
+    state: present
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Project
+  ansible.eda.project:
+    name: "{{ project_name }}"
+    url: "{{ project_url }}"
+    organization_name: Default
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create event stream
+  ansible.eda.event_stream:
+    name: Event Stream - {{ event_stream_name }}
+    uuid: "{{ event_stream_name }}"
+    credential_name: Basic Event Stream Credential
+    organization_name: Default
+    forward_events: true
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create rulebook activation
+  loop:
+    - state: disabled
+    - state: present
+  ansible.eda.rulebook_activation:
+    name: "{{ project_name }} - Rulebook Activation"
+    project_name: "{{ project_name }}"
+    rulebook_name: main.yml
+    state: "{{ item.state }}"
+    organization_name: Default
+    restart_policy: always
+    decision_environment_name: "Decision Environment - {{ _scenario_name }}"
+    event_streams:
+      - event_stream: Event Stream - {{ event_stream_name }}
+        source_name:  __SOURCE_1
+    eda_credentials:
+      - RH AAP Credential
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
