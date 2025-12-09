@@ -4,41 +4,25 @@
   hosts: localhost
   connection: local
   gather_facts: false
+
+  vars_files:
+    - "{{ playbook_dir }}/vars/options.yml"
+
+  vars_prompt:
+    - name: namespace
+      private: no
+      prompt: "OpenShift Project Name"
+
+    - name: scenario_option
+      private: no
+      prompt: |-
+        {% for i in scenarios_allowed %}
+        {{ i }}. Scenario #{{ i }}
+        {% endfor %}
+
+        Enter the number corresponding to your choice
+
   tasks:
-    - name: Check for available scenarios
-      register: _scenarios_found
-      ansible.builtin.find:
-        paths: "{{ playbook_dir }}/roles"
-        patterns: "scenario_[0-9]*"
-        use_regex: true
-        file_type: directory
-
-    - name: Store scenarios in fact
-      ansible.builtin.set_fact:
-        scenarios_allowed: "{{ range(1, _scenarios_found.files | length | int + 1) | list }}"
-
-- name: Scenario Setup Playbook
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: User input
-      when: scenario_option is not defined | default(true)
-      tags: always
-      block:
-        - name: Choose a scenario
-          register: _user_input
-          ansible.builtin.pause:
-            prompt: |-
-              {% for i in hostvars['localhost']['scenarios_allowed'] %}
-              {{ i }}. Scenario #{{ i }}
-              {% endfor %}
-
-              Enter the number corresponding to your choice
-
-        - name: Set user input to variable
-          ansible.builtin.set_fact:
-            scenario_option: "{{ _user_input.user_input }}"
-
     - name: Check if selected option is a scenario
       ignore_errors: true
       register: _scenario_role
@@ -52,12 +36,37 @@
       ansible.builtin.fail:
         msg: "Scenario #{{ scenario_option | int }} not found."
 
+    - name: Set host facts
+      tags: always
+      ansible.builtin.set_fact:
+        scenario: "{{ scenario_option }}"
+        project_name: "{{ namespace }}"
+
+
+- name: Scenario Setup Playbook
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Set playbook variables
+      tags: always
+      ansible.builtin.set_fact:
+        scenario_option: "{{ hostvars['localhost']['scenario'] }}"
+        namespace: "{{ hostvars['localhost']['project_name'] }}"
+
     - name: Deployment Block
       tags: ['deploy']
       block:
         - name: Get scenario variables
+          vars:
+            params:
+              files:
+                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
+                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+                - main.yml
+              paths:
+                - "{{ playbook_dir }}/vars"
           ansible.builtin.include_vars:
-            file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+            file: "{{ lookup('ansible.builtin.first_found', params) }}"
             hash_behaviour: replace
 
         # Delete namespace
@@ -82,11 +91,18 @@
       tags: ['never', 'break']
       block:
         - name: Get scenario variables
+          vars:
+            params:
+              files:
+                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
+                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+                - main.yml
+              paths:
+                - "{{ playbook_dir }}/vars"
           ansible.builtin.include_vars:
-            file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+            file: "{{ lookup('ansible.builtin.first_found', params) }}"
             hash_behaviour: replace
 
-        # Deploy the scenario
         - name: Setup scenario
           ansible.builtin.include_role:
             name: scenario_{{ scenario_option }}
@@ -106,8 +122,16 @@
       tags: ['never', 'fix']
       block:
         - name: Get scenario variables
+          vars:
+            params:
+              files:
+                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
+                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+                - main.yml
+              paths:
+                - "{{ playbook_dir }}/vars"
           ansible.builtin.include_vars:
-            file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+            file: "{{ lookup('ansible.builtin.first_found', params) }}"
             hash_behaviour: replace
 
         # Deploy the scenario
@@ -129,10 +153,17 @@
     - name: Destroy Block
       tags: ['never', 'destroy']
       block:
-
         - name: Get scenario variables
+          vars:
+            params:
+              files:
+                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
+                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+                - main.yml
+              paths:
+                - "{{ playbook_dir }}/vars"
           ansible.builtin.include_vars:
-            file: "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
+            file: "{{ lookup('ansible.builtin.first_found', params) }}"
             hash_behaviour: replace
 
         - name: First Confirmation - Are you sure?
