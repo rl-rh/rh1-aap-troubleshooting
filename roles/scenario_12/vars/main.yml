@@ -1,0 +1,10 @@
+---
+
+# Meta Variables
+_scenario_name: scenario-1
+
+# Role-specific Variables
+scm_project_name: "Demo"
+scm_project_url: "https://github.com/demonpig/aap-example-project"
+
+event_stream_name: "54069451-2150-430b-b039-2685340ccb52"

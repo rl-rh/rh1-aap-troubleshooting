@@ -1,0 +1,85 @@
+---
+- name: Get admin password
+  register: _admin_password
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}"
+
+- name: Get route
+  register: _route_info
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace}}"
+
+- name: Set credentials to internal variable
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.set_fact:
+    aap_hostname: "https://{{ _route_info.resources[0].spec.host }}"
+    aap_username: admin
+    aap_password: "{{ _admin_password.resources[0].data['password'] | b64decode }}"
+
+- name: You can't handle the truth!
+  no_log: "{{ nolog | default(true) }}"
+  vars:
+    method: POST
+    url: "{{ aap_hostname }}/api/controller/v2/job_templates/Ping++Default/launch/"
+    username: "{{ aap_username }}"
+    password: "{{ aap_password }}"
+    batch_size: 30
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: bad-pod-1
+        namespace: "{{ namespace }}"
+      spec:
+        restartPolicy: Always
+        containers:
+          - name: script-container
+            image: registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest
+            # We use 'sh -c' to treat the string as a script
+            command: ["/bin/sh", "-c"]
+            args:
+              - "{{ lookup('template', 'api-batch.sh.j2') }}"
+
+- name: You complete me.
+  no_log: "{{ nolog | default(true) }}"
+  vars:
+    method: GET
+    url: "{{ aap_hostname }}/api/controller/v2/jobs/"
+    username: "{{ aap_username }}"
+    password: "{{ aap_password }}"
+    batch_size: 100
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: bad-pod-2
+        namespace: "{{ namespace }}"
+      spec:
+        restartPolicy: Always
+        containers:
+          - name: script-container
+            image: registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest
+            # We use 'sh -c' to treat the string as a script
+            command: ["/bin/sh", "-c"]
+            args:
+              - "{{ lookup('template', 'api-batch.sh.j2') }}"
+
+- name: Print Message
+  ansible.builtin.debug:
+    msg: |-
+      Try logging into your Ansible Automation Platform at {{ aap_hostname }}. The API is getting
+      peppered with requests. Do not kill the source of the HTTP requests.
+
+      One more thing, investigate what is going on with the EDA Rulebook Activation...
