@@ -21,6 +21,8 @@
           replicas: 1
         eda:
           disabled: false
+          activation_worker:
+            replicas: 0
         hub:
           disabled: true
         controller:
