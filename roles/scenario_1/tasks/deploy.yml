@@ -31,15 +31,15 @@
           disabled: true
         no_log: true
 
-- name: Wait for AAP CR to be Ready and URL to be Populated
-  kubernetes.core.k8s_info:
-    api_version: aap.ansible.com/v1alpha1
-    kind: AnsibleAutomationPlatform
-    name: "{{ _scenario_name }}-aap"
-    namespace: "{{ namespace }}"
-  register: aap_status
-  retries: 80 # Check for up to 13 minutes
-  delay: 20
-  until:
-    - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
-    - aap_status | community.general.json_query("resources[0].status.URL")
+# - name: Wait for AAP CR to be Ready and URL to be Populated
+#   kubernetes.core.k8s_info:
+#     api_version: aap.ansible.com/v1alpha1
+#     kind: AnsibleAutomationPlatform
+#     name: "{{ _scenario_name }}-aap"
+#     namespace: "{{ namespace }}"
+#   register: aap_status
+#   retries: 80 # Check for up to 13 minutes
+#   delay: 20
+#   until:
+#     - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
+#     - aap_status | community.general.json_query("resources[0].status.URL")
