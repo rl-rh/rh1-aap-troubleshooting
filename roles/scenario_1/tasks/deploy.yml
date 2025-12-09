@@ -1,85 +1,43 @@
 ---
 
 - name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
   ansible.builtin.include_vars:
     file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
 - name: Create custom resource
+  no_log: "{{ nolog | default(True) }}"
   kubernetes.core.k8s:
     state: present
     definition:
-      apiVersion: automationcontroller.ansible.com/v1beta1
-      kind: AutomationController
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
       metadata:
-        name: "{{ _scenario_name }}-controller"
+        name: "{{ _scenario_name }}-aap"
         namespace: "{{ namespace }}"
       spec:
-        admin_user: admin
-        auto_upgrade: true
-        create_preload_data: true
-        garbage_collect_secrets: false
-        image_pull_policy: IfNotPresent
-        ingress_type: Route
-        ipv6_disabled: false
-        loadbalancer_class: ''
-        loadbalancer_ip: ''
-        loadbalancer_port: 80
-        loadbalancer_protocol: http
-        metrics_utility_console_enabled: false
-        metrics_utility_cronjob_gather_schedule: '@hourly'
-        metrics_utility_cronjob_report_schedule: '@monthly'
-        metrics_utility_enabled: false
-        metrics_utility_pvc_claim_size: 5Gi
+        api:
+          replicas: 1
+        eda:
+          disabled: false
+        hub:
+          disabled: true
+        controller:
+          disabled: false
+        lightspeed:
+          disabled: true
         no_log: true
-        postgres_keepalives_count: 5
-        postgres_keepalives_idle: 5
-        postgres_keepalives_interval: 5
-        postgres_keepalives: true
-        postgres_resource_requirements:
-          requests:
-            cpu: '4'
-            memory: '4Gi'
-        projects_persistence: false
-        projects_storage_access_mode: ReadWriteMany
-        projects_storage_size: '8Gi'
-        replicas: 1
-        route_tls_termination_mechanism: Edge
-        set_self_labels: true
-        task_liveness_failure_threshold: 3
-        task_liveness_initial_delay: 5
-        task_liveness_period: 0
-        task_liveness_timeout: 1
-        task_manage_replicas: true
-        task_privileged: false
-        task_readiness_failure_threshold: 3
-        task_readiness_initial_delay: 20
-        task_readiness_period: 0
-        task_readiness_timeout: 1
-        web_liveness_failure_threshold: 3
-        web_liveness_initial_delay: 5
-        web_liveness_period: 0
-        web_liveness_timeout: 1
-        web_manage_replicas: true
-        web_readiness_failure_threshold: 3
-        web_readiness_initial_delay: 20
-        web_readiness_period: 0
-        web_readiness_timeout: 1
 
-  # Reference: https://github.com/ansible-automation-platform/aap-gateway-operator/blob/main/roles/ansibleautomationplatform/tasks/wait_for_controller.yml
-- name: Wait for Automation Controller pod
-  register: _controller_pod
-  retries: 60
+- name: Wait for AAP CR to be Ready and URL to be Populated
+  kubernetes.core.k8s_info:
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace }}"
+  register: aap_status
+  retries: 80 # Check for up to 13 minutes
   delay: 20
   until:
-    - _controller_pod['resources'] | length
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first is defined
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-controller-task') | map(attribute='ready') | list | first == true
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name={{ _scenario_name }}-controller-task"
-      - "app.kubernetes.io/managed-by=automationcontroller-operator"
-      - "app.kubernetes.io/component=automationcontroller"
+    - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
+    - aap_status | community.general.json_query("resources[0].status.URL")
