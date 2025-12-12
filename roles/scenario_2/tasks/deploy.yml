@@ -15,7 +15,6 @@
         name: "{{ _scenario_name }}-hub"
         namespace: "{{ namespace }}"
       spec:
-        hub:
         nginx_proxy_send_timeout: 15s
         gunicorn_content_workers: 2
         gunicorn_api_workers: 2
