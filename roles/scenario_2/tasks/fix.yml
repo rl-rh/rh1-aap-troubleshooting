@@ -51,7 +51,7 @@
     api_version: apps/v1
     kind: Deployment
     name: "{{ _scenario_name }}-hub-api"
-    namespace: "{{ _scenario_name }}-hub"
+    namespace: "{{ namespace }}"
     state: absent
     
 - name: Scale up Hub operator deployment
