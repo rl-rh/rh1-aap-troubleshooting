@@ -22,4 +22,4 @@ Scenario #2
 
 Answer section:
 
-Hub requires a Read Write Many storage-class in a typical deployment. Change the hub storage class to ceph something, delete the old pvc and let the operator reconcile
+Hub requires a Read Write Many storage-class in a typical deployment. Change the hub storage class to ocs-external-storagecluster-cephfs , delete the old pvc and let the operator reconcile
