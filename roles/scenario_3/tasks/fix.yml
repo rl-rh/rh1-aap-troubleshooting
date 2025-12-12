@@ -10,10 +10,10 @@
   ansible.builtin.set_fact:
     user_confirmation: "no"
 
-- name: Find the issue?
+- name: Find the first issue?
   ansible.builtin.pause:
     prompt: |-
-      Did you figure out and fix the issues? There were two issues. 
+      Did you figure out and fix the first issue? There were two issues. 
       (yes or no)
       (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
     echo: yes
@@ -72,7 +72,23 @@
           app.kubernetes.io/component: database
           app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
           app.kubernetes.io/managed-by: aap-gateway-operator
-          app.kubernetes.io/name: postgres-15             
+          app.kubernetes.io/name: postgres-15   
+
+- name: Set the table
+  ansible.builtin.set_fact:
+    second_user_confirmation: "no"
+
+- name: Find the second issue?
+  ansible.builtin.pause:
+    prompt: |-
+      Did you figure out and fix the second issue? There were two issues. 
+      (yes or no)
+      (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
+    echo: yes
+  register: confirmation_input
+  until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
+  retries: 99999
+  delay: 0                    
 
 - name: Find the current gateway admin secret
   kubernetes.core.k8s_info:
@@ -91,7 +107,7 @@
           | trim }}
   when: admin_password_secret.resources | length > 0  
 
-- name: Find gateway pod mane
+- name: Find gateway pod name
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
