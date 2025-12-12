@@ -2,7 +2,7 @@ Scenario #1
 
     MODE: Easy
 
-    Namespace: cenario-1
+    Namespace: scenario-1
 
     Components: Automation Controller
 
