@@ -46,6 +46,14 @@
         replicas: 0
   register: hub_deployment_scale_status
 
+- name: Delete Deployment 'hub-api'
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ _scenario_name }}-hub-api"
+    namespace: "{{ _scenario_name }}-hub"
+    state: absent
+    
 - name: Scale up Hub operator deployment
   kubernetes.core.k8s:
     api_version: apps/v1
