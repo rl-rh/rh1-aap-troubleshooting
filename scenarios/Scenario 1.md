@@ -2,19 +2,14 @@ Scenario #1
 
     MODE: Easy
 
+    Namespace: cenario-1
+
+    Components: Automation Controller
+
+    Objectives: 
+      * Find out why there are pod errors
+      * Check the version of controller
+
     Steps:
-
-      - Run initialization playbook / role
-
-      - Run playbook to mess things up
-        - Adjusts the postgresql resource requirements to cause OOMkill
-        - Sets auto_upgrade: false
-
-      - Troubleshoot
-
-    Teachings:
-
-      - Learn about Automation Controller's auto_upgrade: false which shouldn't be used
-        in production.
-
-      - Learn about troubleshooting the resource_requirements
+      ansible-playbook site.yml -t deploy (select scenario 1)
+      ansible-playbook site.yml -t break (select scenario 1)
