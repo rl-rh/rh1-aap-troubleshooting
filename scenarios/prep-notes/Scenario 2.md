@@ -22,4 +22,4 @@ Scenario #2
 
 Answer section:
 
-Hub requires a Read Write Many storage-class in a typical deployment. Change the hub storage class to ocs-external-storagecluster-cephfs , delete the old pvc and let the operator reconcile
+Hub requires a Read Write Many storage-class in a typical deployment. Change the hub storage class in the AAP CR to ocs-external-storagecluster-cephfs , delete the old pvc, delete the hub operator-manager pod, delete hub-api deployment if necessary and let the operator reconcile
