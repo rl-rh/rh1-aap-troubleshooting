@@ -99,7 +99,28 @@
     aap_status.resources[0].status.URL is defined and 
     aap_status.resources[0].status.URL | length > 0
 
-- name: Display Final URL
+- name: Get Admin Password Secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}" 
+  register: admin_secret_info
+  when: aap_status.resources | length > 0    
+
+- name: Display Final Access URL and Credentials
   ansible.builtin.debug:
-    msg: "Ansible Automation Platform is Ready. Access URL: {{ aap_status.resources[0].status.URL }}"
-  when: aap_status is success      
+    msg: |
+      *********************************************************
+      Ansible Automation Platform is Ready. 
+      
+      Access URL: {{ aap_status.resources[0].status.URL }}
+      
+      Admin User: admin 
+      Admin Password: {{ admin_secret_info.resources[0].data.password | b64decode }}
+
+      Once logged in, please upload the manifest located at /home/lab-user/manifest_demystify_aap.zip
+      *********************************************************
+  when: 
+    aap_status.resources | length > 0 and 
+    admin_secret_info.resources | length > 0    
