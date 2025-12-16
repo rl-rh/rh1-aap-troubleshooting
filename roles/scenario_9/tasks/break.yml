@@ -1,0 +1,171 @@
+---
+
+- name: Get admin password
+  register: _admin_password
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}"
+
+- name: Get route
+  register: _route_info
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace}}"
+
+- name: Set credentials to internal variable
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.set_fact:
+    aap_hostname: "https://{{ _route_info.resources[0].spec.host }}"
+    aap_username: admin
+    aap_password: "{{ _admin_password.resources[0].data['password'] | b64decode }}"
+
+- name: Looking for something
+  no_log: "{{ nolog | default(true) }}"
+  register: gateway_pods
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors: app.kubernetes.io/component=aap-gateway
+
+- name: Find another thing
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.set_fact:
+    extracted_name_raw: >
+      {{ gateway_pods.resources
+        | selectattr('status.phase', 'equalto', 'Running')
+        | map(attribute='metadata.name')
+        | first | default('') | string }}
+
+- name: Find another thing again
+  ansible.builtin.set_fact:
+    gateway_pod_name: "{{ extracted_name_raw | replace('\n', '') | replace('\r', '') | trim }}"
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Dont Matter
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ gateway_pod_name }}"
+    container: "api"
+    command: aap-gateway-manage update_password --username admin --password "{{ aap_password }}"
+
+- name: Say your prayers, little one, don't forget, my son, to include everyone...
+  no_log: "{{ nolog | default(true) }}"
+  ansible.hub.collection_remote:
+    name: community
+    url: "https://galaxy.ansible.com/api/"
+    requirements:
+      - ansible.eda
+      - ansible.hub
+      - ansible.netcommon
+      - ansible.network
+      - ansible.posix
+      - ansible.receptor
+      - ansible.windows
+      - awx.awx
+      - community.general
+      - community.windows
+      - infra.aap_utilities
+      - infra.ah_configuration
+      - infra.controller_configuration
+      - infra.eda_configuration
+      - infra.ee_utilities
+      - infra.leapp
+      - infra.osbuild
+      - kubernetes.core
+
+    # Credentials
+    ah_host: "{{ aap_hostname }}"
+    ah_username: "{{ aap_username }}"
+    ah_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Dont Matter
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ namespace }}"
+    pod: "{{ gateway_pod_name }}"
+    container: "api"
+    command: aap-gateway-manage update_password --username admin --password "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+
+- name: Whats in a name?
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: "ansible-automation-platform-operator"
+    namespace: "{{ namespace }}"
+  register: sub_info
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Finding something else
+  ansible.builtin.set_fact:
+    current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
+  no_log: "{{ nolog | default(True) }}"
+
+# - name: No name task
+#   ansible.builtin.shell:
+#     cmd: >
+#       oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json'
+#       -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":0}]'
+#   register: csv_patch_status
+#   changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+#   failed_when: csv_patch_status.rc != 0
+#   no_log: "{{ nolog | default(True) }}"
+
+- name: No name task
+  ansible.builtin.shell: |-
+    oc get csv {{ current_csv_name }} -n {{ namespace }} -o json |
+    jq '.spec.install.spec.deployments[].spec.replicas = 0' |
+    oc replace -f -
+  register: csv_patch_status
+  changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+  failed_when: csv_patch_status.rc != 0
+  no_log: "{{ nolog | default(True) }}"
+
+- name: Test
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: patched
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        hub:
+          idle_deployment: true
+
+- pause:
+    seconds: 5
+
+- name: No name task
+  ansible.builtin.shell: |-
+    oc get csv {{ current_csv_name }} -n {{ namespace }} -o json |
+    jq '.spec.install.spec.deployments[].spec.replicas = 1' |
+    oc replace -f -
+  register: csv_patch_status
+  changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+  failed_when: csv_patch_status.rc != 0
+  no_log: "{{ nolog | default(True) }}"
+
+# - name: No name task
+#   ansible.builtin.shell:
+#     cmd: >
+#       oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json'
+#       -p='[{"op":"replace", "path":"/spec/install/spec/deployments/1/spec/replicas", "value":0}]'
+#   register: csv_patch_status
+#   changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+#   failed_when: csv_patch_status.rc != 0
+#   no_log: "{{ nolog | default(True) }}"
+
+# TODO:
+# Scale down hub operator
+# Scale down the worker deployment / patch the gateway crd to set worker.replicas == 0 for hub

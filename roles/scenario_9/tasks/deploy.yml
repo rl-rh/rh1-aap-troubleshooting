@@ -1,0 +1,32 @@
+---
+
+- name: Set role variables
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Create custom resource
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        api:
+          replicas: 1
+        eda:
+          disabled: true
+        hub:
+          disabled: false
+          file_storage_access_mode: "{{ hub_file_access_mode }}"
+          file_storage_size: "{{ hub_file_storage_size }}"
+          file_storage_storage_class: "{{ hub_file_storage_class }}"
+          storage_type: file
+        controller:
+          disabled: true
+        lightspeed:
+          disabled: true

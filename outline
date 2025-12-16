@@ -44,3 +44,8 @@ Performance/Usage
 		Increase web pod replicas or disable operator and increase deployments
 	EDA activations stuck in pending state
 		EDA scheduler set to 0
+
+
+
+# Build a small intro scenario as to how operators can be scaled down and up using the clusterserviceversion
+# Update site.yml to output message from a role variable that is set this way it makes it more generic
