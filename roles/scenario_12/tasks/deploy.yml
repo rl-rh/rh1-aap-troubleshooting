@@ -43,6 +43,66 @@
     aap_username: admin
     aap_password: "{{ _admin_password.resources[0].data['password'] | b64decode }}"
 
+- name: Create LDAP
+  ansible.builtin.import_tasks: deploy-ldap.yml
+
+- name: Create LDAP Authenticator on Platform Gateway
+  ansible.platform.authenticator:
+    # Connection details
+    aap_hostname: "{{ aap_hostname }}"
+    aap_username: "{{ aap_username }}"
+    aap_password: "{{ aap_password }}"
+    validate_certs: false
+
+    # Authenticator Details
+    name: "LDAP"
+    slug: "ldap"
+    type: "ansible_base.authentication.authenticator_plugins.ldap"
+    enabled: true
+    create_objects: true # Auto-create users in AAP upon login
+    remove_users: true  # Don't delete users if they fail a map sync
+
+    # The specific LDAP configuration (Differs from legacy Controller settings)
+    configuration:
+      SERVER_URI:
+        - "ldap://ldap-service:389"
+      BIND_DN: "cn=admin,dc=planetexpress,dc=com"
+      BIND_PASSWORD: "GoodNewsEveryone"
+      # User Search: [Base DN, Scope, Filter]
+      USER_SEARCH:
+        - ou=people,dc=planetexpress,dc=com
+        - SCOPE_SUBTREE
+        - (uid=%(user)s)
+      # Optional: Group Search
+      GROUP_SEARCH:
+        - dc=planetexpress,dc=com
+        - SCOPE_SUBTREE
+        - (objectClass=group)
+      GROUP_TYPE: "MemberDNGroupType"
+      GROUP_TYPE_PARAMS:
+        member_attr: "member"
+        name_attr: "cn"
+      USER_ATTR_MAP:
+        first_name: "givenName"
+        last_name: "sn"
+        email: "mail"
+
+- name: Map LDAP Groups to Gateway Permissions (Superuser)
+  ansible.platform.authenticator_map:
+    aap_hostname: "{{ aap_hostname }}"
+    aap_username: "{{ aap_username }}"
+    aap_password: "{{ aap_password }}"
+    validate_certs: false
+
+    authenticator: "LDAP" # Must match the slug or name above
+    name: "Grant Superuser to Admins"
+    map_type: "is_superuser"
+    revoke: true
+    triggers:
+      groups:
+        has_and:
+          - "cn=admin_staff,ou=people,dc=planetexpress,dc=com"
+
 ### Create resources for Automation Controller
 - name: Create Inventory - Local
   ansible.controller.inventory:
