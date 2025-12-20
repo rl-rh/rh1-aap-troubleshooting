@@ -4,43 +4,67 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  tags: ['always']
 
-  vars_files:
-    - "{{ playbook_dir }}/vars/options.yml"
+  vars:
+    scenarios_list: "{{ (playbook_dir + '/roles/') | list_scenarios }}"
 
   vars_prompt:
-    - name: namespace
-      private: no
-      prompt: "OpenShift Project Name"
-
     - name: scenario_option
       private: no
       prompt: |-
-        {% for i in scenarios_allowed %}
-        {{ i }}. Scenario #{{ i }}
+        {% set scenarios = (playbook_dir + '/roles/') | list_scenarios %}
+        {% for i in scenarios %}
+
+        ID: {{ i.id }}
+        Path: {{ i.path }}
+        Description: {{ i.description }}
         {% endfor %}
 
-        Enter the number corresponding to your choice
+        Enter the ID corresponding to your choice
 
   tasks:
-    - name: Check if selected option is a scenario
-      ignore_errors: true
+    - name: Debug scenario_list variable
+      ansible.builtin.debug:
+        var: scenarios_list
+        verbosity: 3
+
+    - name: Get scenario metadata
+      ansible.builtin.set_fact:
+        scenario: "{{ scenarios_list | selectattr('id', 'equalto', scenario_option) | first | default({'path': '-'}) }}"
+
+    - name: Check if selected scenario exists
       register: _scenario_role
-      tags: always
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/roles/scenario_{{ scenario_option | int }}"
+        path: "{{ playbook_dir }}/{{ scenario['path'] }}"
 
     - name: Print message if scenario not found
       when: not _scenario_role.stat.exists
-      tags: always
       ansible.builtin.fail:
-        msg: "Scenario #{{ scenario_option | int }} not found."
+        msg: "Scenario #{{ scenario_option }} not found."
 
-    - name: Set host facts
-      tags: always
+    - name: Get scenario variables
+      loop:
+        - "{{ playbook_dir }}/{{ scenario['path'] }}/vars/operator.yml"
+        - "{{ playbook_dir }}/{{ scenario['path'] }}/vars/main.yml"
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+        hash_behaviour: replace
+
+    - name: Set scenario facts
       ansible.builtin.set_fact:
-        scenario: "{{ scenario_option }}"
-        project_name: "{{ namespace }}"
+        # TODO: Rename these confusing variables
+
+        # scenario_name will be the name of the role that lives within
+        # the roles/ dir
+        scenario_name: "{{ scenario.get('path') | basename }}"
+
+        # _scenario_name is not to be confused with scenario_name. This private variable which can
+        # be found in `vars/main.yml` of each role is used to define the namespace in which the
+        # role will be operating within.
+        #
+        # There are some roles such as scenario_12 which enhance other scenarios such as scenario_1
+        project_name: "{{ _scenario_name }}"
 
 
 - name: Scenario Setup Playbook
@@ -50,140 +74,26 @@
     - name: Set playbook variables
       tags: always
       ansible.builtin.set_fact:
-        scenario_option: "{{ hostvars['localhost']['scenario'] }}"
-        namespace: "{{ hostvars['localhost']['project_name'] }}"
+        scenario_name: "{{ hostvars['localhost']['scenario_name'] }}"
+        project_name: "{{ hostvars['localhost']['project_name'] }}"
 
-    - name: Deployment Block
-      tags: ['deploy']
+    - name: Get scenario variables
+      tags: always
+      loop:
+        - "{{ playbook_dir }}/roles/{{ scenario_name }}/vars/operator.yml"
+        - "{{ playbook_dir }}/roles/{{ scenario_name }}/vars/main.yml"
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+        hash_behaviour: replace
+
+    - name: Delete Block
+      tags: ['never', 'delete']
       block:
-        - name: Get scenario variables
-          vars:
-            params:
-              files:
-                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
-                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
-                - main.yml
-              paths:
-                - "{{ playbook_dir }}/vars"
-          ansible.builtin.include_vars:
-            file: "{{ lookup('ansible.builtin.first_found', params) }}"
-            hash_behaviour: replace
-
-        # Delete namespace
-        # Setup namespace / operator
-        - name: Setup namespace and operator
-          ansible.builtin.include_role:
-            name: operator
-
-        # Deploy the scenario
-        - name: Setup scenario
-          ansible.builtin.include_role:
-            name: scenario_{{ scenario_option }}
-      rescue:
-        - name: Report failure message
-          ansible.builtin.fail:
-            msg: |
-              There was a failure in setting up the scenario. Please re-run the setup again to see if
-              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
-
-
-    - name: Break Block
-      tags: ['never', 'break']
-      block:
-        - name: Get scenario variables
-          vars:
-            params:
-              files:
-                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
-                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
-                - main.yml
-              paths:
-                - "{{ playbook_dir }}/vars"
-          ansible.builtin.include_vars:
-            file: "{{ lookup('ansible.builtin.first_found', params) }}"
-            hash_behaviour: replace
-
-        - name: Setup scenario
-          ansible.builtin.include_role:
-            name: scenario_{{ scenario_option }}
-            tasks_from: break.yml
-
-        - name: Final Message
-          ansible.builtin.debug:
-            msg: Done breaking stuff. Have fun! :)
-      rescue:
-        - name: Report failure message
-          ansible.builtin.fail:
-            msg: |
-              There was a failure in setting up the scenario. Please re-run the setup again to see if
-              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
-
-    - name: Fix Block
-      tags: ['never', 'fix']
-      block:
-        - name: Get scenario variables
-          vars:
-            params:
-              files:
-                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
-                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
-                - main.yml
-              paths:
-                - "{{ playbook_dir }}/vars"
-          ansible.builtin.include_vars:
-            file: "{{ lookup('ansible.builtin.first_found', params) }}"
-            hash_behaviour: replace
-
-        # Deploy the scenario
-        - name: Fix scenario
-          ansible.builtin.include_role:
-            name: scenario_{{ scenario_option }}
-            tasks_from: fix.yml
-
-        - name: Final Message
-          ansible.builtin.debug:
-            msg: Things should be good to go now.
-      rescue:
-        - name: Report failure message
-          ansible.builtin.fail:
-            msg: |
-              There was a failure in setting up the scenario. Please re-run the setup again to see if
-              it succeeds. Contact adminstrator if you continue to have issues with setting up the scenario.
-
-    - name: Destroy Block
-      tags: ['never', 'destroy']
-      block:
-        - name: Get scenario variables
-          vars:
-            params:
-              files:
-                - "{{ playbook_dir }}/roles/scenario_{{ scenario_option }}/vars/operator.yml"
-                - "{{ playbook_dir }}/vars/scenario-{{ scenario_option }}.yml"
-                - main.yml
-              paths:
-                - "{{ playbook_dir }}/vars"
-          ansible.builtin.include_vars:
-            file: "{{ lookup('ansible.builtin.first_found', params) }}"
-            hash_behaviour: replace
-
-        - name: First Confirmation - Are you sure?
-          ansible.builtin.pause:
-            prompt: "WARNING: Do you want to delete the project {{ namespace }}? Type 'yes' to proceed."
-            echo: yes
-          register: confirmation_one
-
-        - name: Second Confirmation - REALLY sure?
-          ansible.builtin.pause:
-            prompt: "CRITICAL: This is permanent. Type 'I AM SURE' to proceed with deletion."
-            echo: yes
-          register: confirmation_two
-          when: confirmation_one.user_input | lower == 'yes'
-
-        - name: Delete Project Resource and Wait for Deletion
+        - name: Delete namespace {{ project_name }}
           kubernetes.core.k8s:
             api_version: project.openshift.io/v1
             kind: Project
-            name: "{{ namespace }}"
+            name: "{{ project_name }}"
             state: absent
             wait: yes
             wait_timeout: 300
@@ -191,28 +101,38 @@
             wait_condition:
               type: Absent
               status: True
-          register: delete_status
-          when:
-            confirmation_one.user_input | lower == 'yes' and
-            confirmation_two.user_input | upper == 'I AM SURE'
 
-        - name: Deletion Complete
-          ansible.builtin.debug:
-            msg: "Project '{{ namespace }}' was successfully deleted."
-          when:
-            delete_status is changed and
-            delete_status is succeeded and
-            confirmation_one.user_input | lower == 'yes'
+    - name: Deployment Block
+      tags: ['deploy']
+      block:
+        - name: Setup namespace and operator
+          ansible.builtin.include_role:
+            name: operator
 
-        - name: No action taken (User typed 'no' in first prompt)
-          ansible.builtin.debug:
-            msg: "Deletion aborted. Nothing has been deleted or modified as per your instruction."
-          when: confirmation_one.user_input | lower == 'no'
+        - name: Setup scenario
+          ansible.builtin.include_role:
+            name: "{{ scenario_name }}"
 
-        - name: Invalid input (User typed something other than 'yes' or 'no')
+    - name: Break Block
+      tags: ['never', 'break']
+      block:
+        - name: Break Scenario
+          ansible.builtin.include_role:
+            name: "{{ scenario_name }}"
+            tasks_from: break.yml
+
+        - name: Print Message
           ansible.builtin.debug:
-            msg: "Action failed. Your input ('{{ confirmation_one.user_input }}') was not recognized. Please rerun the playbook and type 'yes' to proceed with deletion, or 'no' to safely abort."
-          when:
-            confirmation_one.user_input is defined and
-            confirmation_one.user_input | lower != 'yes' and
-            confirmation_one.user_input | lower != 'no'
+            msg: "{{ _break_message | default('Have fun fixing!') }}"
+
+    - name: Fix Block
+      tags: ['never', 'fix']
+      block:
+        - name: Fix Scenario
+          ansible.builtin.include_role:
+            name: "{{ scenario_name }}"
+            tasks_from: fix.yml
+
+        - name: Print Message
+          ansible.builtin.debug:
+            msg: "{{ _fix_message | default('All the problems have been resolved!') }}"
