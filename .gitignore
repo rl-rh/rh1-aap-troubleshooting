@@ -1,5 +1,6 @@
 collections/ansible_collections
 .vscode/settings.json
+.ansible
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,ansible,ansibletower,windows,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,ansible,ansibletower,windows,macos
