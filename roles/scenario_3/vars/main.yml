@@ -1,6 +1,7 @@
 ---
 
 _scenario_name: "aap-rh1"
+namespace: "aap-rh1"
 
 _id_override: 3
 
