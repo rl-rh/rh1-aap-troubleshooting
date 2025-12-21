@@ -16,7 +16,7 @@ collections/ansible_collections
 *.*~
 
 # Tower runtime roles
-roles/**
+# roles/**
 !roles/requirements.yml
 
 # Avoid plain-text passwords
