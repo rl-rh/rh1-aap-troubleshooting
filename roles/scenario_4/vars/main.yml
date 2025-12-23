@@ -5,7 +5,7 @@ namespace: "aap-rh1"
 
 _id_override: 4
 
-_description: "Describe scenario"
+_description: "Different Gateway issues"
 
 hub_file_access_mode: ReadWriteMany
 hub_file_storage_size: 25Mi
