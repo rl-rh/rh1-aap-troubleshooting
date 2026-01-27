@@ -12,7 +12,7 @@ install_source_namespace: "openshift-marketplace"
 
 install_plan_approval: "Automatic"
 
-install_wait_retries: 5
+install_wait_retries: 10
 
 install_wait_delay: 30
 
