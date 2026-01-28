@@ -57,7 +57,7 @@
 
 - name: Finding something else
   ansible.builtin.set_fact:
-    current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
+    current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
   no_log: "{{ nolog | default(True) }}"
 
 - name: No name task
