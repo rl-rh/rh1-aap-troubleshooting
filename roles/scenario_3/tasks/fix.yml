@@ -157,7 +157,7 @@
 
 - name: Set Active CSV Name fact
   ansible.builtin.set_fact:
-    current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
+    current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
 
 - name: Revert CSV Patch Set Gateway Operator Replicas back to 1
   ansible.builtin.shell:
