@@ -73,7 +73,7 @@
         name: "{{ _scenario_name }}-aap-postgres-15"
         namespace: "{{ namespace }}"
       spec:
-        replicas: 0 # Force immediate scale-down
+        replicas: 0
   register: scale_down_status
 
 - name: Wait for PostgreSQL pods to terminate
@@ -243,7 +243,7 @@
     label_selectors:
       - "app.kubernetes.io/name={{ _scenario_name }}-aap-controller-web"
       - "app.kubernetes.io/managed-by=automationcontroller-operator"
-      - "app.kubernetes.io/component=automationcontroller"      
+      - "app.kubernetes.io/component=automationcontroller"
 
 - name: Wait for Automation Hub API pod
   register: _hub_pod
@@ -260,7 +260,7 @@
     label_selectors:
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
-      - "app.kubernetes.io/component=api"  
+      - "app.kubernetes.io/component=api"
 
 - name: Wait for Gateway Deployment to reach 1 Ready Replica
   kubernetes.core.k8s_info:
@@ -287,14 +287,14 @@
     name: "{{ _scenario_name }}-aap-hub-worker"
     namespace: "{{ namespace }}"
   register: deploy_ready_status
-  until: 
-    (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and 
-    (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and 
+  until:
+    (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and
+    (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and
     (deploy_ready_status.resources[0].status.availableReplicas | default(0)) == 2
   retries: 60
   delay: 15
-  
+
 - name: Verify Full hub worker Deployment Readiness
   ansible.builtin.debug:
     msg: "Deployment {{ _scenario_name }}-aap-hub-worker is fully scaled up and ready with 2 replicas."
-  when: deploy_ready_status.resources[0].status.readyReplicas == 2      
+  when: deploy_ready_status.resources[0].status.readyReplicas == 2
