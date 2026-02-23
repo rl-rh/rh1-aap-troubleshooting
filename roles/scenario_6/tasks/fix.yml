@@ -22,162 +22,163 @@
   retries: 99999
   delay: 0
 
-- name: Get current Hub Content PVC size
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: PersistentVolumeClaim
-    name: "{{ _scenario_name }}-aap-hub-file-storage"
-    namespace: "{{ namespace }}"
-  register: pvc_info
+# none of this is needed, just need to use correct EE
+# - name: Get current Hub Content PVC size
+#   kubernetes.core.k8s_info:
+#     api_version: v1
+#     kind: PersistentVolumeClaim
+#     name: "{{ _scenario_name }}-aap-hub-file-storage"
+#     namespace: "{{ namespace }}"
+#   register: pvc_info
 
-- name: Set current Hub Content PVC size fact (in Gi)
-  ansible.builtin.set_fact:
-    current_size_gi: "{{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}"
+# - name: Set current Hub Content PVC size fact (in Gi)
+#   ansible.builtin.set_fact:
+#     current_size_gi: "{{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}"
 
-- name: Calculate the required new PVC size
-  ansible.builtin.set_fact:
-    new_size_gi: >
-      {% if current_size_gi | int < 10 %}
-      10
-      {% else %}
-      {{ current_size_gi | int }}
-      {% endif %}
+# - name: Calculate the required new PVC size
+#   ansible.builtin.set_fact:
+#     new_size_gi: >
+#       {% if current_size_gi | int < 10 %}
+#       10
+#       {% else %}
+#       {{ current_size_gi | int }}
+#       {% endif %}
 
-- name: Apply the calculated Hub Content PVC size change
-  kubernetes.core.k8s:
-    api_version: v1
-    kind: PersistentVolumeClaim
-    name: "{{ _scenario_name }}-aap-hub-file-storage"
-    namespace: "{{ namespace }}"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: "{{ _scenario_name }}-aap-hub-file-storage"
-        namespace: "{{ namespace }}"
-      spec:
-        resources:
-          requests:
-            storage: "{{ new_size_gi | string | trim }}Gi"
-  when: current_size_gi != new_size_gi
+# - name: Apply the calculated Hub Content PVC size change
+#   kubernetes.core.k8s:
+#     api_version: v1
+#     kind: PersistentVolumeClaim
+#     name: "{{ _scenario_name }}-aap-hub-file-storage"
+#     namespace: "{{ namespace }}"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: v1
+#       kind: PersistentVolumeClaim
+#       metadata:
+#         name: "{{ _scenario_name }}-aap-hub-file-storage"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         resources:
+#           requests:
+#             storage: "{{ new_size_gi | string | trim }}Gi"
+#   when: current_size_gi != new_size_gi
 
-- name: Create AAP custom resource
-  kubernetes.core.k8s:
-    state: patched
-    definition:
-      apiVersion: aap.ansible.com/v1alpha1
-      kind: AnsibleAutomationPlatform
-      metadata:
-        name: "{{ _scenario_name }}-aap"
-        namespace: "{{ namespace }}"
-      spec:
-        hub:
-          content:
-            resource_requirements:
-              limits:
-                cpu: 500m
-                memory: 8Gi
-              requests:
-                cpu: 100m
-                memory: 200Mi
-          file_storage_access_mode: "{{ hub_file_access_mode }}"
-          file_storage_size: "{{ new_size_gi | string | trim }}Gi"
-          file_storage_storage_class: "{{ hub_file_storage_class }}"
-          storage_type: file
+# - name: Create AAP custom resource
+#   kubernetes.core.k8s:
+#     state: patched
+#     definition:
+#       apiVersion: aap.ansible.com/v1alpha1
+#       kind: AnsibleAutomationPlatform
+#       metadata:
+#         name: "{{ _scenario_name }}-aap"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         hub:
+#           content:
+#             resource_requirements:
+#               limits:
+#                 cpu: 500m
+#                 memory: 8Gi
+#               requests:
+#                 cpu: 100m
+#                 memory: 200Mi
+#           file_storage_access_mode: "{{ hub_file_access_mode }}"
+#           file_storage_size: "{{ new_size_gi | string | trim }}Gi"
+#           file_storage_storage_class: "{{ hub_file_storage_class }}"
+#           storage_type: file
 
-- name: Get Hub Content Deployment container image
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: "{{ _scenario_name }}-aap-hub-content"
-    namespace: "{{ namespace }}"
-  register: deployment_info
+# - name: Get Hub Content Deployment container image
+#   kubernetes.core.k8s_info:
+#     api_version: apps/v1
+#     kind: Deployment
+#     name: "{{ _scenario_name }}-aap-hub-content"
+#     namespace: "{{ namespace }}"
+#   register: deployment_info
 
-- name: Set Existing Image Name fact
-  ansible.builtin.set_fact:
-    existing_image_name: "{{ deployment_info.resources[0].spec.template.spec.containers[0].image }}"
+# - name: Set Existing Image Name fact
+#   ansible.builtin.set_fact:
+#     existing_image_name: "{{ deployment_info.resources[0].spec.template.spec.containers[0].image }}"
 
-- name: Scale down Hub Content deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "{{ _scenario_name }}-aap-hub-content"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "{{ _scenario_name }}-aap-hub-content"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: deployment_scale_status
+# - name: Scale down Hub Content deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "{{ _scenario_name }}-aap-hub-content"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "{{ _scenario_name }}-aap-hub-content"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: deployment_scale_status
 
-- name: Update Hub Content Deployment Pod Memory Limits
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    name: "{{ _scenario_name }}-aap-hub-content"
-    namespace: "{{ namespace }}"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "{{ _scenario_name }}-aap-hub-content"
-        namespace: "{{ namespace }}"
-      spec:
-        template:
-          spec:
-            containers:
-              - name: content
-                image: "{{ existing_image_name }}"
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 8Gi
-                  requests:
-                    cpu: 100m
-                    memory: 200Mi
+# - name: Update Hub Content Deployment Pod Memory Limits
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     name: "{{ _scenario_name }}-aap-hub-content"
+#     namespace: "{{ namespace }}"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "{{ _scenario_name }}-aap-hub-content"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         template:
+#           spec:
+#             containers:
+#               - name: content
+#                 image: "{{ existing_image_name }}"
+#                 resources:
+#                   limits:
+#                     cpu: 500m
+#                     memory: 8Gi
+#                   requests:
+#                     cpu: 100m
+#                     memory: 200Mi
 
-- name: Scale up Hub Content deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "{{ _scenario_name }}-aap-hub-content"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "{{ _scenario_name }}-aap-hub-content"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 2
-  register: deployment_scale_up_status                    
+# - name: Scale up Hub Content deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "{{ _scenario_name }}-aap-hub-content"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "{{ _scenario_name }}-aap-hub-content"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 2
+#   register: deployment_scale_up_status                    
 
-- name: Wait for Hub content to be Fully Ready with 2 Replicas
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: "{{ _scenario_name }}-aap-hub-content"
-    namespace: "{{ namespace }}"
-  register: deploy_ready_status
-  until:
-    (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and
-    (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and
-    (deploy_ready_status.resources[0].status.availableReplicas | default(0)) == 2
-  retries: 60
-  delay: 15
+# - name: Wait for Hub content to be Fully Ready with 2 Replicas
+#   kubernetes.core.k8s_info:
+#     api_version: apps/v1
+#     kind: Deployment
+#     name: "{{ _scenario_name }}-aap-hub-content"
+#     namespace: "{{ namespace }}"
+#   register: deploy_ready_status
+#   until:
+#     (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and
+#     (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and
+#     (deploy_ready_status.resources[0].status.availableReplicas | default(0)) == 2
+#   retries: 60
+#   delay: 15
 
-- name: Verify Full hub content Deployment Readiness
-  ansible.builtin.debug:
-    msg: "Deployment {{ _scenario_name }}-aap-hub-content is fully scaled up and ready with 2 replicas."
-  when: deploy_ready_status.resources[0].status.readyReplicas == 2
+# - name: Verify Full hub content Deployment Readiness
+#   ansible.builtin.debug:
+#     msg: "Deployment {{ _scenario_name }}-aap-hub-content is fully scaled up and ready with 2 replicas."
+#   when: deploy_ready_status.resources[0].status.readyReplicas == 2
