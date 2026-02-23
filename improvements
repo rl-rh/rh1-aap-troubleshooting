@@ -5,3 +5,4 @@ One NS per student
 Refactor scenario-1 (maybe split into two scenarios?)
     Add fix task
 add oc bash completion
+remove collections requirements.yml from repo - not needed for project sync
