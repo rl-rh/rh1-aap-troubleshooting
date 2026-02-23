@@ -1,26 +1,34 @@
 ---
 
 controller_job_templates:
-  - name: RH1 Job Template 1
+  - name: Summit Job Template 1
     organization: Default
     project: AAP Troubleshooting Demo
-    inventory: RH1 inventory
-    playbook: 'playbooks/rh1-t1.yml'
+    inventory: Summit inventory
+    playbook: 'playbooks/summit-t1.yml'
     job_type: run
     allow_simultaneous: true
 
-  - name: RH1 Job Template 2
+  - name: Summit Job Template 2
     organization: Default
     project: AAP Troubleshooting Demo
-    inventory: RH1 inventory
-    playbook: 'playbooks/rh1-t2.yml'
+    inventory: Summit inventory
+    playbook: 'playbooks/summit-t2.yml'
     job_type: run
     allow_simultaneous: true
 
-  - name: RH1 Job Template 3
+  - name: Summit Job Template 3
     organization: Default
     project: AAP Troubleshooting Demo
-    inventory: RH1 inventory
-    playbook: 'playbooks/rh1-t3.yml'
+    inventory: Summit inventory
+    playbook: 'playbooks/summit-t3.yml'
     job_type: run
     allow_simultaneous: true
+
+  - name: Summit Job Template 4
+    organization: Default
+    project: AAP Troubleshooting Demo
+    inventory: Summit inventory
+    playbook: 'playbooks/summit-t4.yml'
+    job_type: run
+    allow_simultaneous: true    

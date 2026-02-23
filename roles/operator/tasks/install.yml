@@ -5,6 +5,30 @@
     file: vars/main.yml
     hash_behaviour: replace
 
+- name: install | Get PackageManifest for the AAP operator
+  kubernetes.core.k8s_info:
+    api_version: packages.operators.coreos.com/v1
+    kind: PackageManifest
+    name: "{{ install_operator_name }}"
+    namespace: "{{ install_source_namespace }}"
+  register: _operator_manifest
+
+- name: install | Determine latest CSV for the specified channel
+  ansible.builtin.set_fact:
+    install_starting_csv: >-
+      {{ 
+        (_operator_manifest.resources[0].status.channels 
+        | selectattr('name', 'equalto', install_channel) 
+        | first).currentCSV 
+      }}
+  when: >
+    _operator_manifest.resources | length > 0 and 
+    install_starting_csv is not defined or install_starting_csv == ""
+
+- name: install | Display the starting CSV being used
+  ansible.builtin.debug:
+    msg: "Installing AAP Operator using Starting CSV: {{ install_starting_csv }}"
+
 - name: install | Create target namespace
   kubernetes.core.k8s:
     state: present
