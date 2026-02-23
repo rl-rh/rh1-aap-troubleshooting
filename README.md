@@ -1,4 +1,4 @@
-# Red Hat One - Session
+# Red Hat Summit - Session
 
 # Instructions
 
