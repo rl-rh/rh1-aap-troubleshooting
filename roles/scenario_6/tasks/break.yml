@@ -156,8 +156,8 @@
         controller_host: "{{ controller_host }}"
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
-        name: "RH1 Inventory"
-        description: "Inventory for RH1 Troubleshooting Labs"
+        name: "Summit Inventory"
+        description: "Inventory for Summit Troubleshooting Labs"
         organization: "Default"
         state: present
       register: inventory_creation_status         
@@ -167,7 +167,7 @@
         controller_host: "{{ controller_host }}"
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
-        inventory: "RH1 Inventory"
+        inventory: "Summit Inventory"
         name: "{{ item.hostname }}"
         description: "Lab Node {{ item.num }}"
         variables:
@@ -184,7 +184,7 @@
         controller_host: "{{ controller_host }}"
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
-        inventory: "RH1 Inventory"
+        inventory: "Summit Inventory"
         name: "localhost"
         state: present
         variables:
@@ -197,7 +197,7 @@
         controller_host: "{{ controller_host }}"
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
-        name: "RH1-EE1"
+        name: "Summit-EE1"
         image: "quay.io/rh-ee-rlaroy/ryan:latest"
         organization: "Default"
         state: present
@@ -209,22 +209,22 @@
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
         name: "{{ item.name }}"
-        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        description: "Job Template for Summit Troubleshooting Lab {{ item.suffix }}"
         organization: "Default"
         project: "AAP Troubleshooting Demo"
-        inventory: "RH1 Inventory"
+        inventory: "Summit Inventory"
         execution_environment: "Default execution environment"
-        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        playbook: "playbooks/summit-t{{ item.suffix }}.yml"
         credentials:
           - "Lab User SSH Key"
         job_type: run
         allow_simultaneous: true
         state: present
       loop:
-        - { name: "RH1-T1", suffix: 1 }
-        - { name: "RH1-T2", suffix: 2 }
-        - { name: "RH1-T3", suffix: 3 }
-        - { name: "RH1-T4", suffix: 4 }
+        - { name: "SUMMIT-T1", suffix: 1 }
+        - { name: "SUMMIT-T2", suffix: 2 }
+        - { name: "SUMMIT-T3", suffix: 3 }
+        - { name: "SUMMIT-T4", suffix: 4 }
 
     - name: Consult the Magic 8-Ball API
       ansible.controller.job_template:
@@ -232,17 +232,17 @@
         controller_oauthtoken: "{{ aap_oauth2_token }}"
         validate_certs: false
         name: "{{ item.name }}"
-        description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+        description: "Job Template for Summit Troubleshooting Lab {{ item.suffix }}"
         organization: "Default"
         project: "AAP Troubleshooting Demo"
-        inventory: "RH1 Inventory"
-        execution_environment: "RH1-EE1"
-        playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+        inventory: "Summit Inventory"
+        execution_environment: "Summit-EE1"
+        playbook: "playbooks/summit-t{{ item.suffix }}.yml"
         job_type: run
         allow_simultaneous: true
         state: present
       loop:
-        - { name: "RH1-T4", suffix: 4 }
+        - { name: "SUMMIT-T4", suffix: 4 }
 
     # - name: Optimize the Digital Feedback Loop
     #   kubernetes.core.k8s_info:
@@ -284,9 +284,9 @@
     #     status:
     #       URL: 'https://aap.apps.{{ cluster_base_domain }}'
 
-    - name: Log in to AAP, run RH1-T1 through RH1-T4 Job Templates
+    - name: Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates
       ansible.builtin.debug:
         msg: |-
-          Log in to AAP, run RH1-T1 through RH1-T4 Job Templates.
+          Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates.
           Find out whats failing
       no_log: false
