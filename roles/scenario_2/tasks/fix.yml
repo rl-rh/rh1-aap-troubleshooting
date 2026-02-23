@@ -1,5 +1,4 @@
 ---
-
 - name: Set role variables
   ansible.builtin.include_vars:
     file: "{{ role_path }}/vars/main.yml"
@@ -14,6 +13,22 @@
     state: absent
 
 - name: Update AAP custom resource
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: AnsibleAutomationPlatform
+      apiVersion: aap.ansible.com/v1alpha1
+      metadata:
+        name: "{{ _scenario_name }}"
+        namespace: "{{ namespace }}"
+      spec:
+        hub:
+          file_storage_access_mode: "{{ hub_file_access_mode }}"
+          file_storage_size: "{{ hub_file_storage_size }}"
+          file_storage_storage_class: "{{ hub_file_storage_class }}"
+          storage_type: file
+
+- name: Update Hub custom resource
   kubernetes.core.k8s:
     state: present
     definition:
@@ -46,6 +61,24 @@
         replicas: 0
   register: hub_deployment_scale_status
 
+- name: Scale down gateway operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "aap-gateway-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "aap-gateway-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: gateway_deployment_scale_status
+
 - name: Delete Deployment 'hub-api'
   kubernetes.core.k8s:
     api_version: apps/v1
@@ -53,24 +86,24 @@
     name: "{{ _scenario_name }}-hub-api"
     namespace: "{{ namespace }}"
     state: absent
-    
-- name: Scale up Hub operator deployment
+
+- name: Scale up gateway operator deployment
   kubernetes.core.k8s:
     api_version: apps/v1
     kind: Deployment
     namespace: "{{ namespace }}"
-    name: "automation-hub-operator-controller-manager"
+    name: "aap-gateway-operator-controller-manager"
     state: present
     merge_type: merge
     resource_definition:
       apiVersion: apps/v1
       kind: Deployment
       metadata:
-        name: "automation-hub-operator-controller-manager"
+        name: "aap-gateway-operator-controller-manager"
         namespace: "{{ namespace }}"
       spec:
         replicas: 1
-  register: hub_deployment_scale_status          
+  register: gateway_deployment_scale_status
 
 - name: Wait for Automation Hub API pod
   register: _hub_pod
@@ -87,4 +120,4 @@
     label_selectors:
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-hub"
-      - "app.kubernetes.io/component=api"        
+      - "app.kubernetes.io/component=api"
