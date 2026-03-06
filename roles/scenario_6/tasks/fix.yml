@@ -22,163 +22,175 @@
   retries: 99999
   delay: 0
 
-# none of this is needed, just need to use correct EE
-# - name: Get current Hub Content PVC size
-#   kubernetes.core.k8s_info:
-#     api_version: v1
-#     kind: PersistentVolumeClaim
-#     name: "{{ _scenario_name }}-aap-hub-file-storage"
-#     namespace: "{{ namespace }}"
-#   register: pvc_info
+- name: Scale down Lightspeed API deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ _scenario_name }}-aap-lightspeed-api"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-lightspeed-api"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: api_deployment_scale_status
 
-# - name: Set current Hub Content PVC size fact (in Gi)
-#   ansible.builtin.set_fact:
-#     current_size_gi: "{{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}"
+- name: Scale down Lightspeed Chatbot API deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ _scenario_name }}-aap-lightspeed-chatbot-api"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ _scenario_name }}-aap-lightspeed-chatbot-api"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: chatbot_deployment_scale_status
 
-# - name: Calculate the required new PVC size
-#   ansible.builtin.set_fact:
-#     new_size_gi: >
-#       {% if current_size_gi | int < 10 %}
-#       10
-#       {% else %}
-#       {{ current_size_gi | int }}
-#       {% endif %}
+- name: Scale down Lightspeed operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "ansible-lightspeed-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "ansible-lightspeed-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 0
+  register: chatbot_deployment_scale_status
 
-# - name: Apply the calculated Hub Content PVC size change
-#   kubernetes.core.k8s:
-#     api_version: v1
-#     kind: PersistentVolumeClaim
-#     name: "{{ _scenario_name }}-aap-hub-file-storage"
-#     namespace: "{{ namespace }}"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: v1
-#       kind: PersistentVolumeClaim
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-file-storage"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         resources:
-#           requests:
-#             storage: "{{ new_size_gi | string | trim }}Gi"
-#   when: current_size_gi != new_size_gi
+- name: Apply correct model
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Secret
+    name: chatbot-configuration-secret
+    namespace: "{{ namespace }}"
+    state: patched
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: chatbot-configuration-secret
+        namespace: "{{ namespace }}"
+      type: Opaque
+      data:
+        chatbot_model: "{{ chatbot_model | b64encode }}"
+        chatbot_token: "{{ chatbot_token | b64encode }}"
+        chatbot_url: "{{ chatbot_url | b64encode }}"
 
-# - name: Create AAP custom resource
-#   kubernetes.core.k8s:
-#     state: patched
-#     definition:
-#       apiVersion: aap.ansible.com/v1alpha1
-#       kind: AnsibleAutomationPlatform
-#       metadata:
-#         name: "{{ _scenario_name }}-aap"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         hub:
-#           content:
-#             resource_requirements:
-#               limits:
-#                 cpu: 500m
-#                 memory: 8Gi
-#               requests:
-#                 cpu: 100m
-#                 memory: 200Mi
-#           file_storage_access_mode: "{{ hub_file_access_mode }}"
-#           file_storage_size: "{{ new_size_gi | string | trim }}Gi"
-#           file_storage_storage_class: "{{ hub_file_storage_class }}"
-#           storage_type: file
+- name: Scale up Lightspeed operator deployment
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "ansible-lightspeed-operator-controller-manager"
+    state: present
+    merge_type: merge
+    resource_definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "ansible-lightspeed-operator-controller-manager"
+        namespace: "{{ namespace }}"
+      spec:
+        replicas: 1
+  register: chatbot_operator_scale_status
 
-# - name: Get Hub Content Deployment container image
-#   kubernetes.core.k8s_info:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#   register: deployment_info
+- name: wait a few
+  ansible.builtin.pause:
+    seconds: 30
 
-# - name: Set Existing Image Name fact
-#   ansible.builtin.set_fact:
-#     existing_image_name: "{{ deployment_info.resources[0].spec.template.spec.containers[0].image }}"
+- name: Wait for lightspeed api pod
+  register: _lightspeed_api_pod
+  retries: 60
+  delay: 20
+  until:
+    - _lightspeed_api_pod['resources'] | length
+    - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first is defined
+    - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
+      - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
+      - "app.kubernetes.io/component=ansible-lightspeed-api"
 
-# - name: Scale down Hub Content deployment
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     namespace: "{{ namespace }}"
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         replicas: 0
-#   register: deployment_scale_status
+- name: Wait for lightspeed chatbot api pod
+  register: _lightspeed_chatbot_api_pod
+  retries: 60
+  delay: 20
+  until:
+    - _lightspeed_chatbot_api_pod['resources'] | length
+    - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first is defined
+    - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first == true
+  kubernetes.core.k8s_info:
+    kind: Pod
+    api_version: v1
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
+      - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
+      - "app.kubernetes.io/component=ansible-lightspeed-chatbot-api"
 
-# - name: Update Hub Content Deployment Pod Memory Limits
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         template:
-#           spec:
-#             containers:
-#               - name: content
-#                 image: "{{ existing_image_name }}"
-#                 resources:
-#                   limits:
-#                     cpu: 500m
-#                     memory: 8Gi
-#                   requests:
-#                     cpu: 100m
-#                     memory: 200Mi
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
+  kubernetes.core.k8s_info:
+    api_version: lightspeed.ansible.com/v1alpha1 
+    kind: AnsibleLightspeed
+    name: "{{ _scenario_name }}-aap-lightspeed"
+    namespace: "{{ namespace }}"
+  register: lightspeed_status
+  retries: 60 
+  delay: 10
+  until: 
+      lightspeed_status.resources | length > 0 and 
+      lightspeed_status.resources[0].status.conditions | 
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') | 
+      list | length > 0
 
-# - name: Scale up Hub Content deployment
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     namespace: "{{ namespace }}"
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         replicas: 2
-#   register: deployment_scale_up_status                    
+- name: Waiting for Lightspeed reconciliation to complete
+  ansible.builtin.debug:
+    msg: "Waiting for Lightspeed reconciliation to complete... (Current status: {{ lightspeed_status.resources[0].status.phase | default('Initializing') }})"
+  when: 
+    lightspeed_status is failed and 
+    lightspeed_status.resources | length > 0
 
-# - name: Wait for Hub content to be Fully Ready with 2 Replicas
-#   kubernetes.core.k8s_info:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#   register: deploy_ready_status
-#   until:
-#     (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and
-#     (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and
-#     (deploy_ready_status.resources[0].status.availableReplicas | default(0)) == 2
-#   retries: 60
-#   delay: 15
+- name: Wait for AnsibleLightspeed CR to reach Successful status (Lightspeed API pods spin up and down a few times).
+  kubernetes.core.k8s_info:
+    api_version: lightspeed.ansible.com/v1alpha1 
+    kind: AnsibleLightspeed
+    name: "{{ _scenario_name }}-aap-lightspeed"
+    namespace: "{{ namespace }}"
+  register: lightspeed_status
+  retries: 60 
+  delay: 10
+  until: 
+      lightspeed_status.resources | length > 0 and 
+      lightspeed_status.resources[0].status.conditions | 
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') | 
+      list | length > 0    
 
-# - name: Verify Full hub content Deployment Readiness
-#   ansible.builtin.debug:
-#     msg: "Deployment {{ _scenario_name }}-aap-hub-content is fully scaled up and ready with 2 replicas."
-#   when: deploy_ready_status.resources[0].status.readyReplicas == 2
+- name: Verify Lightspeed Status
+  ansible.builtin.debug:
+    msg: "AnsibleLightspeed CR is now in a Successful state."
+  when: lightspeed_status is success 

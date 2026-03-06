@@ -1,11 +1,9 @@
 ---
-
 _scenario_name: "scenario-3"
 namespace: "scenario-3"
-
 _id_override: 3
 
-_description: "Gateway Issues"
+_description: "Different Gateway issues"
 
 hub_file_access_mode: ReadWriteMany
 hub_file_storage_size: 25Mi

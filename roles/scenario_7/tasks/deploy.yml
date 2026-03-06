@@ -1,37 +1,13 @@
 ---
 
 - name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
   ansible.builtin.include_vars:
     file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
-- name: Get current Hub Content PVC size
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: PersistentVolumeClaim
-    name: "{{ _scenario_name }}-aap-hub-file-storage"
-    namespace: "{{ namespace }}"
-  register: pvc_info
-
-- name: Set current Hub Content PVC size fact (with 0 default if missing)
-  ansible.builtin.set_fact:
-    current_size_gi: >
-      {% if pvc_info.resources | length > 0 %}
-      {{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}
-      {% else %}
-      0
-      {% endif %}
-
-- name: Calculate the required new PVC size
-  ansible.builtin.set_fact:
-    new_size_gi: >
-      {% if current_size_gi | int < 10 %}
-      10
-      {% else %}
-      {{ current_size_gi | int }}
-      {% endif %}
-
-- name: Create AAP custom resource
+- name: Create custom resource
+  no_log: "{{ nolog | default(True) }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -41,113 +17,29 @@
         name: "{{ _scenario_name }}-aap"
         namespace: "{{ namespace }}"
       spec:
+        api:
+          replicas: 1
         eda:
-          disabled: true
-        route_tls_termination_mechanism: Edge
-        redis_mode: standalone
-        image_pull_policy: IfNotPresent
-        hub:
           disabled: false
-          file_storage_access_mode: "{{ hub_file_access_mode }}"
-          file_storage_size: "{{ new_size_gi | string | trim }}Gi"
-          file_storage_storage_class: "{{ hub_file_storage_class }}"
-          storage_type: file
+          activation_worker:
+            replicas: 0
+        hub:
+          disabled: true
         controller:
           disabled: false
-  no_log: "{{ nolog | default(True) }}"
+        lightspeed:
+          disabled: true
+        no_log: true
 
-- name: Wait for Gateway pod
-  register: _gateway_pod
-  retries: 60
-  delay: 20
-  until:
-    - _gateway_pod['resources'] | length
-    - _gateway_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
-    - _gateway_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name={{ _scenario_name }}-aap"
-      - "app.kubernetes.io/managed-by=aap-operator"
-      - "app.kubernetes.io/component=aap-gateway"  
-
-- name: Wait for Automation Controller pod
-  register: _controller_pod
-  retries: 60
-  delay: 20
-  until:
-    - _controller_pod['resources'] | length
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first is defined
-    - _controller_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', _scenario_name + '-aap-controller-task') | map(attribute='ready') | list | first == true
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name={{ _scenario_name }}-aap-controller-task"
-      - "app.kubernetes.io/managed-by=automationcontroller-operator"
-      - "app.kubernetes.io/component=automationcontroller"
-
-- name: Wait for Automation Hub API pod
-  register: _hub_pod
-  retries: 60
-  delay: 15
-  until:
-    - _hub_pod['resources'] | length
-    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first is defined
-    - _hub_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'api') | map(attribute='ready') | list | first == true
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name=automationhub-api"
-      - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
-      - "app.kubernetes.io/component=api"
-
-
-- name: Wait for AAP CR to be Ready and URL to be Populated
-  kubernetes.core.k8s_info:
-    api_version: aap.ansible.com/v1alpha1
-    kind: AnsibleAutomationPlatform
-    name: "{{ _scenario_name }}-aap"
-    namespace: "{{ namespace }}"
-  register: aap_status
-  retries: 80 # Check for up to 13 minutes
-  delay: 10
-  until:
-    aap_status.resources | length > 0 and
-    aap_status.resources[0].status.conditions |
-      selectattr('type', 'equalto', 'Successful') |
-      selectattr('status', 'equalto', 'True') |
-      list | length > 0 and
-    aap_status.resources[0].status.URL is defined and
-    aap_status.resources[0].status.URL | length > 0
-
-- name: Get Admin Password Secret
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Secret
-    name: "{{ _scenario_name }}-aap-admin-password"
-    namespace: "{{ namespace }}" 
-  register: admin_secret_info
-  when: aap_status.resources | length > 0    
-
-- name: Display Final Access URL and Credentials
-  ansible.builtin.debug:
-    msg: |
-      *********************************************************
-      Ansible Automation Platform is Ready. 
-      
-      Access URL: {{ aap_status.resources[0].status.URL }}
-      
-      Admin User: admin 
-      Admin Password: {{ admin_secret_info.resources[0].data.password | b64decode }}
-
-      Once logged in, please upload the manifest located at /home/lab-user/manifest_demystify_aap.zip
-      *********************************************************
-  when: 
-    aap_status.resources | length > 0 and 
-    admin_secret_info.resources | length > 0    
+# - name: Wait for AAP CR to be Ready and URL to be Populated
+#   kubernetes.core.k8s_info:
+#     api_version: aap.ansible.com/v1alpha1
+#     kind: AnsibleAutomationPlatform
+#     name: "{{ _scenario_name }}-aap"
+#     namespace: "{{ namespace }}"
+#   register: aap_status
+#   retries: 80 # Check for up to 13 minutes
+#   delay: 20
+#   until:
+#     - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
+#     - aap_status | community.general.json_query("resources[0].status.URL")

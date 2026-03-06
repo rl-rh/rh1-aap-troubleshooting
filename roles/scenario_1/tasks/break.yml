@@ -1,0 +1,7 @@
+---
+- name: Find out what is wrong with the Hub Pods
+  ansible.builtin.debug:
+    msg: |-
+      Hub was deployed, but something is going on with the Hub Pods, find out why.      
+      Note: Hub UI will not be available, just focus on the Hub Pods.
+      There is no break step in this scenario. 

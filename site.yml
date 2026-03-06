@@ -22,6 +22,12 @@
         {% endfor %}
 
         Enter the ID corresponding to your choice
+    
+    - name: break_fix
+      private: no
+      prompt: |- 
+        Are you wanting to break or fix the scenario?
+        Enter 'break' or 'fix' to proceed
 
   tasks:
     - name: Debug scenario_list variable
@@ -65,6 +71,24 @@
         #
         # There are some roles such as scenario_12 which enhance other scenarios such as scenario_1
         project_name: "{{ _scenario_name }}"
+        break_fix: "{{ break_fix }}"   
+
+    - name: Break or fix?
+      ansible.builtin.pause:
+        prompt: |-
+          We're about to {{ break_fix }} {{ scenario_name }}, are you sure?
+          (yes or no)
+          (Entering yes will {{ break_fix }} the lab. Enter no to cancel)
+        echo: yes
+      register: confirmation_input
+      # until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
+      retries: 99999
+      delay: 0        
+
+    - name: fail if needed
+      ansible.builtin.fail:
+        msg: Not ready to proceed? Feel free to reach out to the instructors with questions
+      when: confirmation_input.user_input != "yes"
 
 
 - name: Scenario Setup Playbook
@@ -84,7 +108,7 @@
         - "{{ playbook_dir }}/roles/{{ scenario_name }}/vars/main.yml"
       ansible.builtin.include_vars:
         file: "{{ item }}"
-        hash_behaviour: replace
+        hash_behaviour: replace     
 
     - name: Delete Block
       tags: ['never', 'delete']
@@ -103,7 +127,7 @@
               status: True
 
     - name: Deployment Block
-      tags: ['deploy']
+      tags: ['never', 'deploy']
       block:
         - name: Setup namespace and operator
           ansible.builtin.include_role:
@@ -114,7 +138,7 @@
             name: "{{ scenario_name }}"
 
     - name: Break Block
-      tags: ['never', 'break']
+      # tags: ['never', 'break']
       block:
         - name: Break Scenario
           ansible.builtin.include_role:
@@ -124,9 +148,10 @@
         - name: Print Message
           ansible.builtin.debug:
             msg: "{{ _break_message | default('Have fun fixing!') }}"
+      when: break_fix == "break"
 
     - name: Fix Block
-      tags: ['never', 'fix']
+      # tags: ['never', 'fix']
       block:
         - name: Fix Scenario
           ansible.builtin.include_role:
@@ -136,3 +161,4 @@
         - name: Print Message
           ansible.builtin.debug:
             msg: "{{ _fix_message | default('All the problems have been resolved!') }}"
+      when: break_fix == "fix"

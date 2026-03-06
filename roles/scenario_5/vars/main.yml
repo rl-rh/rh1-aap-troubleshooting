@@ -1,8 +1,6 @@
 ---
-
 _scenario_name: "scenario-5"
 namespace: "scenario-5"
-
 _id_override: 5
 
 _description: "Automation Content (Private Automation Hub) Sync Issues"

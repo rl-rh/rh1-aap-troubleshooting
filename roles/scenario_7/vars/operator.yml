@@ -1,9 +1,7 @@
 ---
 
+# Operator Version
 install_namespace: "{{ project_name }}"
 install_channel: 'stable-2.6'
-# install_plan_approval: 'Manual'
-# install_starting_csv: "aap-operator.v2.6.0-0.1764966733"
-chatbot_model: granite-3-2-8b-instruct
-chatbot_token: "{{ alia_token }}"
-chatbot_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
+install_plan_approval: 'Automatic'
+install_starting_csv: "aap-operator.v2.6.0-0.1763137334"

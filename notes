@@ -1,0 +1,7 @@
+Scenario 1 - 
+  deploy, wait for controller?
+  Should set operator version to manual with an older version of controller?
+  Fix task?
+Scenario 3 - 
+  takes foreverrrrrrrrrrrrrrr but should only have to be done once, scenario 3-7 use the same namespace
+  

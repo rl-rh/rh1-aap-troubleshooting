@@ -1,9 +1,9 @@
 ---
-
 _scenario_name: "scenario-2"
 namespace: "scenario-2"
+_id_override: 2
 
-_description: "Automation Content (Private Automation Hub) Issues"
+_description: "Gateway Issues"
 
 hub_file_access_mode: ReadWriteMany
 hub_file_storage_size: 25Mi

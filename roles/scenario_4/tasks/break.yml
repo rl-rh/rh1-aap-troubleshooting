@@ -1,152 +1,292 @@
 ---
+- name: Adjusting some stuff....
+  no_log: "{{ no_log | default(True) }}"
+  block:
+    - name: Set role variables
+      no_log: "{{ nolog | default(True) }}"
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/vars/main.yml"
+        hash_behaviour: replace
 
-- name: Set role variables
-  no_log: "{{ nolog | default(True) }}"
-  ansible.builtin.include_vars:
-    file: "{{ role_path }}/vars/main.yml"
-    hash_behaviour: replace
+    # - name: Optimize the Digital Feedback Loop
+    #   kubernetes.core.k8s_info:
+    #     api_version: config.openshift.io/v1
+    #     kind: DNS
+    #     name: cluster
+    #   register: dns_info
 
-- name: Make sure its broken
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "{{ _scenario_name }}-aap-gateway"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "{{ _scenario_name }}-aap-gateway"
+    # - name: Set cluster_base_domain fact
+    #   ansible.builtin.set_fact:
+    #     cluster_base_domain: "{{ dns_info.resources[0].spec.baseDomain }}"
+
+    # - name: Deleting the Matrix Backup
+    #   kubernetes.core.k8s:
+    #     api_version: route.openshift.io/v1
+    #     kind: Route
+    #     name: aap-short
+    #     namespace: "{{ namespace }}"
+    #     state: present
+    #     definition:
+    #       spec:
+    #         host: "aap.apps.{{ cluster_base_domain }}"
+    #         to:
+    #           kind: Service
+    #           name: "{{ _scenario_name }}-aap"
+    #           weight: 100
+    #         port:
+    #           targetPort: http
+    #         tls:
+    #           termination: edge
+    #           insecureEdgeTerminationPolicy: Redirect
+
+    # - name: Update URL status
+    #   operator_sdk.util.k8s_status:
+    #     api_version: aap.ansible.com/v1alpha1
+    #     kind: AnsibleAutomationPlatform
+    #     name: "{{ _scenario_name }}-aap"
+    #     namespace: "{{ namespace }}"
+    #     status:
+    #       URL: 'https://aap.apps.{{ cluster_base_domain }}'
+
+    - name: Run Mid-Cycle Pivot Analysis
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ _scenario_name }}-aap-admin-password"
         namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"  
+      register: gateway_secret
 
-- name: Make sure its broken x2
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
+    - name: Validate the Blueness of the Sky
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-admin-password-secret' not found."
+      when: gateway_secret.resources | length == 0
+
+    - name: Distribute Rainbow Unicorn Dust
+      ansible.builtin.set_fact:
+        adminpw_string_raw: "{{ gateway_secret.resources[0].data.password | b64decode | string }}"
+
+    - name: Looking for That One File
+      ansible.builtin.set_fact:
+        aap_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Unlocking the Daemon's Door
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ _scenario_name }}-aap-gateway-oauth2-token-secret"
         namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"        
+      register: oauth_token_secret
 
-- name: mmm... yes... breaking things
-  kubernetes.core.k8s:
-    state: patched
-    definition:
-      apiVersion: aap.ansible.com/v1alpha1
-      kind: AnsibleAutomationPlatform
-      metadata:
+    - name: Verifying RFC 1149 Compliance
+      ansible.builtin.fail:
+        msg: "Secret 'aap-gateway-oauth2-token-secret' not found in namespace {{ namespace }}."
+      when: oauth_token_secret.resources | length == 0
+
+    - name: The Answer is 42
+      ansible.builtin.set_fact:
+        token_string_raw: "{{ oauth_token_secret.resources[0].data.token | b64decode | string }}"
+
+    - name: Apply Anti-Gravity Patch
+      ansible.builtin.set_fact:
+        aap_oauth2_token: "{{ token_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+    - name: Normalize Gherkin Cucumber Relays
+      kubernetes.core.k8s_info:
+        api_version: aap.ansible.com/v1alpha1
+        kind: AnsibleAutomationPlatform
         name: "{{ _scenario_name }}-aap"
         namespace: "{{ namespace }}"
-      spec:
-        database:
-          node_selector:
-            "kubernetes.io/os": "not_linux"
-  no_log: "{{ nolog | default(True) }}"            
+      register: aap_cr_info
 
+    - name: Ensure Hamsters are Still Running
+      ansible.builtin.set_fact:
+        controller_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+      when: aap_cr_info.resources | length > 0 and
+            aap_cr_info.resources[0].status.URL is defined
 
-- name: This will be fun
-  kubernetes.core.k8s:
-    state: patched
-    definition:
-      apiVersion: aap.ansible.com/v1alpha1
-      kind: AnsibleAutomationPlatform
-      metadata:
-        name: "{{ _scenario_name }}-aap"
-        namespace: "{{ install_namespace }}"
-      spec:
-        api:
-          resource_requirements:
-            limits:
-              cpu: 1000m
-              memory: 500Gi
-            requests:
-              cpu: 400m
-              memory: 500Gi
-  no_log: "{{ nolog | default(True) }}"              
+    - name: Updating Local Timezone
+      ansible.builtin.fail:
+        msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
+      when: controller_host | length == 0
 
-- name: Extra Broke
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "{{ _scenario_name }}-aap-gateway"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "{{ _scenario_name }}-aap-gateway"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"  
+    - name: Applying the One Ring's Policy
+      ansible.controller.project:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "AAP Troubleshooting Demo"
+        organization: "Default"
+        scm_type: git
+        scm_url: "https://github.com/rl-rh/rh1-aap-troubleshooting.git"
+        scm_branch: "main"
+        scm_update_on_launch: false
+        state: present
 
-- name: Extra Broke x2
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"    
+    - name: Synchronize the Muffin Button
+      ansible.builtin.find:
+        paths: "~/.ssh"
+        patterns: "*-1key.pem" 
+        file_type: file
+        recurse: false 
+      register: key_search
 
-- name: Mic check 1....2....3....
-  register: _pg_pod
-  retries: 30
-  delay: 5
-  until:
-    - _pg_pod['resources'] | length
-    - _pg_pod.resources[0].status.phase == "Pending" 
-  kubernetes.core.k8s_info:
-    kind: Pod
-    api_version: v1
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name=postgres-15"
-      - "app.kubernetes.io/instance=postgres-15-{{ _scenario_name }}-aap"
-      - "app.kubernetes.io/component=database"  
-  no_log: "{{ nolog | default(True) }}"    
+    - name: Polling the Locus of Control 
+      ansible.builtin.set_fact:
+        ssh_key_path: "{{ key_search.files[0].path }}"
+      failed_when: key_search.files | length == 0
 
-- name: Is this thing on?
-  register: _gateway_pod
-  retries: 30
-  delay: 5
-  until: 
-    _gateway_pod.resources | length > 0 and 
-    _gateway_pod.resources | selectattr('status.phase', 'equalto', 'Pending') | list | length > 0
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app.kubernetes.io/name={{ _scenario_name }}-aap"
-      - "app.kubernetes.io/component=aap-gateway"  
-  no_log: "{{ nolog | default(True) }}"    
+    - name: Rotating the X-Y-Z Coordinates
+      ansible.controller.credential:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "Lab User SSH Key"
+        description: "Machine credential for lab-user"
+        organization: "Default"
+        credential_type: "Machine"
+        inputs:
+          username: "lab-user"
+          ssh_key_data: "{{ lookup('ansible.builtin.file', ssh_key_path) }}"
+          ssh_key_unlock: "" 
+        state: present
+      register: credential_status     
+
+    - name: Checking for Kernel Panic Puppies
+      ansible.controller.inventory:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "Summit Inventory"
+        description: "Inventory for Summit Troubleshooting Labs"
+        organization: "Default"
+        state: present
+      register: inventory_creation_status         
+
+    - name: Engage Hyperdrive Sequence
+      ansible.controller.host:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        inventory: "Summit Inventory"
+        name: "{{ item.hostname }}"
+        description: "Lab Node {{ item.num }}"
+        variables:
+          ansible_connection: ssh
+          ansible_user: lab-user
+        state: present
+      loop:
+        - { hostname: "node1", num: 1 }
+        - { hostname: "node2", num: 2 }
+      register: host_add_status      
+
+    - name: Enabling the Side-Channel Flange
+      ansible.controller.host:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        inventory: "Summit Inventory"
+        name: "localhost"
+        state: present
+        variables:
+          ansible_connection: local
+          ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      register: host_creation_status
+
+    - name: Dialing the Stargate Address
+      ansible.controller.execution_environment:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "Summit-EE1"
+        image: "quay.io/rh-ee-rlaroy/ryan:latest"
+        organization: "Default"
+        state: present
+      register: ee_status
+
+    - name: Nothing to See Here
+      ansible.controller.job_template:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "{{ item.name }}"
+        description: "Job Template for Summit Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default"
+        project: "AAP Troubleshooting Demo"
+        inventory: "Summit Inventory"
+        execution_environment: "Default execution environment"
+        playbook: "playbooks/summit-t{{ item.suffix }}.yml"
+        credentials:
+          - "Lab User SSH Key"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        - { name: "SUMMIT-T1", suffix: 1 }
+        - { name: "SUMMIT-T2", suffix: 2 }
+        - { name: "SUMMIT-T3", suffix: 3 }
+        - { name: "SUMMIT-T4", suffix: 4 }
+
+    - name: Consult the Magic 8-Ball API
+      ansible.controller.job_template:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
+        name: "{{ item.name }}"
+        description: "Job Template for Summit Troubleshooting Lab {{ item.suffix }}"
+        organization: "Default"
+        project: "AAP Troubleshooting Demo"
+        inventory: "Summit Inventory"
+        execution_environment: "Summit-EE1"
+        playbook: "playbooks/summit-t{{ item.suffix }}.yml"
+        job_type: run
+        allow_simultaneous: true
+        state: present
+      loop:
+        - { name: "SUMMIT-T4", suffix: 4 }
+
+    # - name: Optimize the Digital Feedback Loop
+    #   kubernetes.core.k8s_info:
+    #     api_version: config.openshift.io/v1
+    #     kind: DNS
+    #     name: cluster
+    #   register: dns_info
+
+    # - name: Set cluster_base_domain fact
+    #   ansible.builtin.set_fact:
+    #     cluster_base_domain: "{{ dns_info.resources[0].spec.baseDomain }}"
+
+    # - name: Deleting the Matrix Backup
+    #   kubernetes.core.k8s:
+    #     api_version: route.openshift.io/v1
+    #     kind: Route
+    #     name: aap-short
+    #     namespace: "{{ namespace }}"
+    #     state: present
+    #     definition:
+    #       spec:
+    #         host: "aap.apps.{{ cluster_base_domain }}"
+    #         to:
+    #           kind: Service
+    #           name: "{{ _scenario_name }}-aap"
+    #           weight: 100
+    #         port:
+    #           targetPort: http
+    #         tls:
+    #           termination: edge
+    #           insecureEdgeTerminationPolicy: Redirect
+
+    # - name: Update URL status
+    #   operator_sdk.util.k8s_status:
+    #     api_version: aap.ansible.com/v1alpha1
+    #     kind: AnsibleAutomationPlatform
+    #     name: "{{ _scenario_name }}-aap"
+    #     namespace: "{{ namespace }}"
+    #     status:
+    #       URL: 'https://aap.apps.{{ cluster_base_domain }}'
+
+    - name: Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates
+      ansible.builtin.debug:
+        msg: |-
+          Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates.
+          Find out whats failing
+      no_log: false

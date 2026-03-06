@@ -1,11 +1,9 @@
 ---
-
+_scenario_name: "scenario-71"
+namespace: "scenario-71"
+_id_override: 71
 # Meta Variables
-_scenario_name: "scenario-1"
-
 _description: "Describe scenario"
-
-_id_override: 1.2
 
 # Role-specific Variables
 scm_project_name: "Demo"

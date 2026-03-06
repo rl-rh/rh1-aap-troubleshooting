@@ -1,0 +1,95 @@
+---
+
+- name: Set role variables
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: 1. Delete the Ansible Automation Platform Subscription
+  kubernetes.core.k8s:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace }}"
+    state: absent
+  register: sub_delete_status
+
+- name: Wait for Subscription deletion to complete
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: "ansible-automation-platform"
+    namespace: "{{ namespace }}"
+  register: sub_wait_status
+  until: sub_wait_status.resources | length == 0
+  retries: 30
+  delay: 10
+
+- name: 2. Delete the ClusterServiceVersion (CSV)
+  kubernetes.core.k8s:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    # Use the dynamic CSV name previously extracted, or the static name if known
+    # Example uses the name previously extracted into current_csv_name:
+    name: "{{ install_starting_csv }}"
+    namespace: "{{ namespace }}"
+    state: absent
+  ignore_errors: yes # Ignore errors if the CSV was already cleaned up by OLM
+
+- name: Wait for Operator Deployment to Terminate
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    # Target the operator's main deployment (REPLACE NAME if necessary)
+    name: "ansible-automation-platform-operator-controller-manager"
+    namespace: "{{ namespace }}"
+  register: deploy_wait_status
+  until: deploy_wait_status.resources | length == 0
+  retries: 30
+  delay: 10
+
+- name: 1. Get List of Orphaned PVCs Managed by Operator
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ namespace }}"
+    # Use the label the operator applies to its resources (adjust as needed)
+    label_selectors:
+      - "app.kubernetes.io/managed-by=ansible-automation-platform-operator"
+  register: operator_pvcs
+
+- name: 2. Delete All Identified PVCs
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ namespace }}"
+    state: absent
+  loop: "{{ operator_pvcs.resources }}"
+  # Only run if the list of PVCs is not empty
+  when: operator_pvcs.resources | length > 0
+  loop_control:
+    label: "Deleting PVC: {{ item.metadata.name }}"
+
+- name: 3. Get List of Orphaned Secrets Managed by Operator
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ namespace }}"
+    # Use a label selector that targets secrets related to the operator
+    label_selectors:
+      - "app.kubernetes.io/part-of=ansible-automation-platform"
+  register: operator_secrets
+
+- name: 4. Delete All Identified Secrets
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Secret
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ namespace }}"
+    state: absent
+  loop: "{{ operator_secrets.resources }}"
+  # Only run if the list of Secrets is not empty
+  when: operator_secrets.resources | length > 0
+  loop_control:
+    label: "Deleting Secret: {{ item.metadata.name }}"

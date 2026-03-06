@@ -5,6 +5,32 @@
     file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
+- name: Get current Hub Content PVC size
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: "{{ _scenario_name }}-aap-hub-file-storage"
+    namespace: "{{ namespace }}"
+  register: pvc_info
+
+- name: Set current Hub Content PVC size fact (with 0 default if missing)
+  ansible.builtin.set_fact:
+    current_size_gi: >
+      {% if pvc_info.resources | length > 0 %}
+      {{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}
+      {% else %}
+      0
+      {% endif %}
+
+- name: Calculate the required new PVC size
+  ansible.builtin.set_fact:
+    new_size_gi: >
+      {% if current_size_gi | int < 10 %}
+      10
+      {% else %}
+      {{ current_size_gi | int }}
+      {% endif %}
+
 - name: Create AAP custom resource
   kubernetes.core.k8s:
     state: present
@@ -23,11 +49,12 @@
         hub:
           disabled: false
           file_storage_access_mode: "{{ hub_file_access_mode }}"
-          file_storage_size: "{{ hub_file_storage_size }}"
+          file_storage_size: "{{ new_size_gi | string | trim }}Gi"
           file_storage_storage_class: "{{ hub_file_storage_class }}"
           storage_type: file
         controller:
           disabled: false
+  no_log: "{{ nolog | default(True) }}"
 
 - name: Wait for Gateway pod
   register: _gateway_pod
@@ -44,7 +71,7 @@
     label_selectors:
       - "app.kubernetes.io/name={{ _scenario_name }}-aap"
       - "app.kubernetes.io/managed-by=aap-operator"
-      - "app.kubernetes.io/component=aap-gateway"  
+      - "app.kubernetes.io/component=aap-gateway"
 
 - name: Wait for Automation Controller pod
   register: _controller_pod
@@ -87,15 +114,15 @@
     name: "{{ _scenario_name }}-aap"
     namespace: "{{ namespace }}"
   register: aap_status
-  retries: 80
+  retries: 80 # Check for up to 13 minutes
   delay: 10
-  until: 
+  until:
     aap_status.resources | length > 0 and
-    aap_status.resources[0].status.conditions | 
-      selectattr('type', 'equalto', 'Successful') | 
-      selectattr('status', 'equalto', 'True') | 
+    aap_status.resources[0].status.conditions |
+      selectattr('type', 'equalto', 'Successful') |
+      selectattr('status', 'equalto', 'True') |
       list | length > 0 and
-    aap_status.resources[0].status.URL is defined and 
+    aap_status.resources[0].status.URL is defined and
     aap_status.resources[0].status.URL | length > 0
 
 - name: Get Admin Password Secret
@@ -122,4 +149,4 @@
       *********************************************************
   when: 
     aap_status.resources | length > 0 and 
-    admin_secret_info.resources | length > 0      
+    admin_secret_info.resources | length > 0    

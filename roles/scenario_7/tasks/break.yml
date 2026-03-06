@@ -1,92 +1,66 @@
 ---
-- name: Adjusting some stuff....
-  no_log: "{{ no_log | default(True) }}"
-  block:
 
-  - name: Set role variables
-    ansible.builtin.include_vars:
-      file: "{{ role_path }}/vars/main.yml"
-      hash_behaviour: replace
+- name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
 
-  - name: Gather some facts
-    ansible.builtin.setup:
-      filter: "ansible_date_time"
+- name: Gather some facts
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.setup:
+    filter: "ansible_date_time"
 
-  - name: Taking a Short Nap
-    ansible.builtin.set_fact:
-      break_model: codellama-7b-instruct
-      break_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
+  # Let's do something with the secrets
+- name: I thought they smelled bad on the outside
+  loop:
+    - "{{ _scenario_name }}-aap-controller-secret-key"
+    - "{{ _scenario_name }}-aap-eda-db-fields-encryption-secret"
+    - "{{ _scenario_name }}-aap-db-fields-encryption-secret"
+  loop_control:
+    loop_var: secret_name
+  ansible.builtin.include_tasks:
+    file: break-secret.yml
 
-  - name: Perform Level 7 Compliance Yoga
-    kubernetes.core.k8s:
-      api_version: v1
-      kind: Secret
-      name: chatbot-configuration-secret
-      namespace: "{{ namespace }}"
-      state: present
-      definition:
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: chatbot-configuration-secret
-          namespace: "{{ namespace }}"
-        type: Opaque
-        data:
-          chatbot_model: "{{ break_model | b64encode }}"
-          chatbot_token: "{{ chatbot_token | b64encode }}"
-          chatbot_url: "{{ break_url | b64encode }}"
+- name: You're a wizard Harry
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: patched
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        controller:
+          auto_upgrade: false
+        database:
+          resource_requirements:
+            requests:
+              cpu: '5m'
+              memory: '10Mi'
+            limits:
+              cpu: '5m'
+              memory: '10Mi'
 
-  - name: Re-platform the Core Data Spigot
-    kubernetes.core.k8s:
-      state: present
-      definition:
-        apiVersion: aap.ansible.com/v1alpha1
-        kind: AnsibleAutomationPlatform
-        metadata:
-          name: "{{ _scenario_name }}-aap"
-          namespace: "{{ namespace }}"
-        spec:
-          lightspeed:
-            chatbot_config_secret_name: chatbot-configuration-secret
-            disabled: false
-
-  - name: Locate Missing Sock Inventory
-    register: _lightspeed_api_pod
-    retries: 60
-    delay: 20
-    until:
-      - _lightspeed_api_pod['resources'] | length
-      - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first is defined
-      - _lightspeed_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'model-api') | map(attribute='ready') | list | first == true
-    kubernetes.core.k8s_info:
-      kind: Pod
-      api_version: v1
-      namespace: "{{ namespace }}"
-      label_selectors:
-        - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
-        - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
-        - "app.kubernetes.io/component=ansible-lightspeed-api"
-
-  - name: Preparing for Next Tuesday
-    register: _lightspeed_chatbot_api_pod
-    retries: 60
-    delay: 20
-    until:
-      - _lightspeed_chatbot_api_pod['resources'] | length
-      - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first is defined
-      - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first == true
-    kubernetes.core.k8s_info:
-      kind: Pod
-      api_version: v1
-      namespace: "{{ namespace }}"
-      label_selectors:
-        - "app.kubernetes.io/name={{ _scenario_name }}-aap-lightspeed"
-        - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
-        - "app.kubernetes.io/component=ansible-lightspeed-chatbot-api"
-
-  - name: Log in to AAP, figure out why ALIA icon won't come up
-    ansible.builtin.debug:
-      msg: |-
-        Log in to AAP, figure out why ALIA icon won't come up
-        Find out whats failing
-    no_log: false
+- name: Everything is broke now! Time to reboot!
+  loop:
+    - "{{ _scenario_name }}-aap-gateway"
+    - "{{ _scenario_name }}-aap-controller-web"
+    - "{{ _scenario_name }}-aap-controller-task"
+    - "{{ _scenario_name }}-aap-eda-api"
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ item }}"
+        namespace: "{{ namespace }}"
+      spec:
+        template:
+          metadata:
+            annotations:
+              kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -Iseconds') }}"

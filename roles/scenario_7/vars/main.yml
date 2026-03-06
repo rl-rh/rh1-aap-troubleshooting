@@ -1,11 +1,5 @@
 ---
-
 _scenario_name: "scenario-7"
 namespace: "scenario-7"
-
 _id_override: 7
-
-_description: "Ansible Lightspeed Intelligent Assistant (ALIA) Issues"
-
-hub_file_access_mode: ReadWriteMany
-hub_file_storage_class: ocs-external-storagecluster-cephfs
+_description: "Describe scenario"

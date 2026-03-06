@@ -71,7 +71,7 @@
     label_selectors:
       - "app.kubernetes.io/name={{ _scenario_name }}-aap"
       - "app.kubernetes.io/managed-by=aap-operator"
-      - "app.kubernetes.io/component=aap-gateway"
+      - "app.kubernetes.io/component=aap-gateway"  
 
 - name: Wait for Automation Controller pod
   register: _controller_pod
@@ -106,6 +106,7 @@
       - "app.kubernetes.io/name=automationhub-api"
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-aap-hub"
       - "app.kubernetes.io/component=api"
+
 
 - name: Wait for AAP CR to be Ready and URL to be Populated
   kubernetes.core.k8s_info:
