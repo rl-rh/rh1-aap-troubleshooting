@@ -1,6 +1,6 @@
 ---
 _scenario_name: "scenario-2"
-namespace: "scenario-2"
+namespace: "{{project_name}}" #""scenario-2"
 _id_override: 2
 
 _description: "Gateway Issues"

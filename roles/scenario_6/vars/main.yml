@@ -1,6 +1,6 @@
 ---
 _scenario_name: "scenario-6"
-namespace: "scenario-6"
+namespace: "{{project_name}}" #""scenario-6"
 _id_override: 6
 
 _description: "Ansible Lightspeed Intelligent Assistant (ALIA) Issues"

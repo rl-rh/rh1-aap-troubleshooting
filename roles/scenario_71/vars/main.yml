@@ -1,6 +1,6 @@
 ---
 _scenario_name: "scenario-71"
-namespace: "scenario-71"
+namespace: "{{project_name}}" #""scenario-71"
 _id_override: 71
 # Meta Variables
 _description: "Describe scenario"
