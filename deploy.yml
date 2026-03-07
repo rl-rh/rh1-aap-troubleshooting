@@ -1,0 +1,33 @@
+---
+- name: AAP Lab Pipeline Deployment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load user IDs list
+      ansible.builtin.include_vars:
+        file: vars/user_ids.yml
+
+    - name: Set scenarios list fact
+      ansible.builtin.set_fact:
+        scenarios_list: "{{ (playbook_dir + '/roles/') | list_scenarios }}"
+
+    - name: Execute deployment on all scenarios across all users
+      ansible.builtin.include_tasks: process_scenario.yml
+      loop: "{{ user_ids | product(scenarios_list) | list }}"
+      loop_control:
+        loop_var: current_iteration
+
+    - name: Print Execution Summary
+      ansible.builtin.debug:
+        msg: |-
+          =========================================
+          EXECUTION SUMMARY
+          =========================================
+          Action Performed: DEPLOY
+          
+          {% for item in execution_summary | default([]) %}
+          * User: {{ item.user_id }} | Scenario: {{ item.scenario }} | Namespace: {{ item.namespace }}
+          {% endfor %}
+          =========================================

@@ -1,0 +1,31 @@
+---
+- name: Set iteration facts
+  ansible.builtin.set_fact:
+    user_id: "{{ current_iteration[0] }}"
+    scenario_path: "{{ current_iteration[1].path }}"
+    scenario_name: "{{ current_iteration[1].path | basename }}"
+
+- name: Get scenario variables
+  loop:
+    - "{{ playbook_dir }}/{{ scenario_path }}/vars/operator.yml"
+    - "{{ playbook_dir }}/{{ scenario_path }}/vars/main.yml"
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+    hash_behaviour: replace
+
+- name: Set project name fact
+  ansible.builtin.set_fact:
+    # Generates namespace: unique_id-scenario_name
+    project_name: "{{ user_id }}-{{ _scenario_name }}"
+
+- name: Setup namespace and operator
+  ansible.builtin.include_role:
+    name: operator
+
+- name: Setup scenario
+  ansible.builtin.include_role:
+    name: "{{ scenario_name }}"
+
+- name: Append to execution summary
+  ansible.builtin.set_fact:
+    execution_summary: "{{ execution_summary | default([]) + [{'user_id': user_id, 'scenario': scenario_name, 'namespace': project_name}] }}"
