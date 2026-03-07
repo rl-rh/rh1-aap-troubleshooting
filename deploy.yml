@@ -1,9 +1,8 @@
 ---
-- name: AAP Lab Pipeline Deployment
+- name: Preparation - Build User Inventory
   hosts: localhost
   connection: local
   gather_facts: false
-
   tasks:
     - name: Load user IDs list
       ansible.builtin.include_vars:
@@ -13,12 +12,32 @@
       ansible.builtin.set_fact:
         scenarios_list: "{{ (playbook_dir + '/roles/') | list_scenarios }}"
 
-    - name: Execute deployment on all scenarios across all users
-      ansible.builtin.include_tasks: process_scenario.yml
-      loop: "{{ user_ids | product(scenarios_list) | list }}"
-      loop_control:
-        loop_var: current_iteration
+    - name: Create in-memory hosts for parallel execution
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        groups: lab_users
+      loop: "{{ user_ids }}"
 
+
+- name: Parallel Deployment by Scenario
+  hosts: lab_users
+  # Connection is still local so tasks execute on the control node (pipeline runner)
+  # but they are logically separated by our virtual hosts to enable parallelism!
+  connection: local 
+  gather_facts: false
+  tasks:
+    - name: Execute deployment for each scenario
+      ansible.builtin.include_tasks: process_scenario.yml
+      loop: "{{ hostvars['localhost']['scenarios_list'] }}"
+      loop_control:
+        loop_var: current_scenario
+
+
+- name: Pipeline Summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
     - name: Print Execution Summary
       ansible.builtin.debug:
         msg: |-
@@ -26,8 +45,7 @@
           EXECUTION SUMMARY
           =========================================
           Action Performed: DEPLOY
-          
-          {% for item in execution_summary | default([]) %}
-          * User: {{ item.user_id }} | Scenario: {{ item.scenario }} | Namespace: {{ item.namespace }}
-          {% endfor %}
+          Total Users Processed: {{ groups['lab_users'] | length }}
+          Total Scenarios Processed: {{ scenarios_list | length }}
+          Total Namespaces Targeted: {{ (groups['lab_users'] | length) * (scenarios_list | length) }}
           =========================================

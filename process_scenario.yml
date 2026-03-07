@@ -1,9 +1,10 @@
 ---
 - name: Set iteration facts
   ansible.builtin.set_fact:
-    user_id: "{{ current_iteration[0] }}"
-    scenario_path: "{{ current_iteration[1].path }}"
-    scenario_name: "{{ current_iteration[1].path | basename }}"
+    # inventory_hostname represents the user_id (e.g., user1, user2)
+    user_id: "{{ inventory_hostname }}"
+    scenario_path: "{{ current_scenario.path }}"
+    scenario_name: "{{ current_scenario.path | basename }}"
 
 - name: Get scenario variables
   loop:
@@ -25,7 +26,3 @@
 - name: Setup scenario
   ansible.builtin.include_role:
     name: "{{ scenario_name }}"
-
-- name: Append to execution summary
-  ansible.builtin.set_fact:
-    execution_summary: "{{ execution_summary | default([]) + [{'user_id': user_id, 'scenario': scenario_name, 'namespace': project_name}] }}"
