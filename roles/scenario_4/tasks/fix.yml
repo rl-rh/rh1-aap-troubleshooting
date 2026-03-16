@@ -22,163 +22,88 @@
   retries: 99999
   delay: 0
 
-# none of this is needed, just need to use correct EE
-# - name: Get current Hub Content PVC size
-#   kubernetes.core.k8s_info:
-#     api_version: v1
-#     kind: PersistentVolumeClaim
-#     name: "{{ _scenario_name }}-aap-hub-file-storage"
-#     namespace: "{{ namespace }}"
-#   register: pvc_info
+- name: Find AAP admin password
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ namespace }}"
+  register: gateway_secret
 
-# - name: Set current Hub Content PVC size fact (in Gi)
-#   ansible.builtin.set_fact:
-#     current_size_gi: "{{ pvc_info.resources[0].spec.resources.requests.storage | regex_replace('[^0-9]', '') | int }}"
+- name: Fail if admin password can't be found
+  ansible.builtin.fail:
+    msg: "Secret 'aap-gateway-admin-password-secret' not found."
+  when: gateway_secret.resources | length == 0
 
-# - name: Calculate the required new PVC size
-#   ansible.builtin.set_fact:
-#     new_size_gi: >
-#       {% if current_size_gi | int < 10 %}
-#       10
-#       {% else %}
-#       {{ current_size_gi | int }}
-#       {% endif %}
+- name: Set Admin password fact
+  ansible.builtin.set_fact:
+    adminpw_string_raw: "{{ gateway_secret.resources[0].data.password | b64decode | string }}"
 
-# - name: Apply the calculated Hub Content PVC size change
-#   kubernetes.core.k8s:
-#     api_version: v1
-#     kind: PersistentVolumeClaim
-#     name: "{{ _scenario_name }}-aap-hub-file-storage"
-#     namespace: "{{ namespace }}"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: v1
-#       kind: PersistentVolumeClaim
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-file-storage"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         resources:
-#           requests:
-#             storage: "{{ new_size_gi | string | trim }}Gi"
-#   when: current_size_gi != new_size_gi
+- name: Clean up admin password fact
+  ansible.builtin.set_fact:
+    aap_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
 
-# - name: Create AAP custom resource
-#   kubernetes.core.k8s:
-#     state: patched
-#     definition:
-#       apiVersion: aap.ansible.com/v1alpha1
-#       kind: AnsibleAutomationPlatform
-#       metadata:
-#         name: "{{ _scenario_name }}-aap"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         hub:
-#           content:
-#             resource_requirements:
-#               limits:
-#                 cpu: 500m
-#                 memory: 8Gi
-#               requests:
-#                 cpu: 100m
-#                 memory: 200Mi
-#           file_storage_access_mode: "{{ hub_file_access_mode }}"
-#           file_storage_size: "{{ new_size_gi | string | trim }}Gi"
-#           file_storage_storage_class: "{{ hub_file_storage_class }}"
-#           storage_type: file
+- name: Find admin oauth token
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-gateway-oauth2-token-secret"
+    namespace: "{{ namespace }}"
+  register: oauth_token_secret
 
-# - name: Get Hub Content Deployment container image
-#   kubernetes.core.k8s_info:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#   register: deployment_info
+- name: Fail if oauth token is not found
+  ansible.builtin.fail:
+    msg: "Secret 'aap-gateway-oauth2-token-secret' not found in namespace {{ namespace }}."
+  when: oauth_token_secret.resources | length == 0
 
-# - name: Set Existing Image Name fact
-#   ansible.builtin.set_fact:
-#     existing_image_name: "{{ deployment_info.resources[0].spec.template.spec.containers[0].image }}"
+- name: Set oauth token fact
+  ansible.builtin.set_fact:
+    token_string_raw: "{{ oauth_token_secret.resources[0].data.token | b64decode | string }}"
 
-# - name: Scale down Hub Content deployment
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     namespace: "{{ namespace }}"
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         replicas: 0
-#   register: deployment_scale_status
+- name: Clean up oauth token fact
+  ansible.builtin.set_fact:
+    aap_oauth2_token: "{{ token_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
 
-# - name: Update Hub Content Deployment Pod Memory Limits
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         template:
-#           spec:
-#             containers:
-#               - name: content
-#                 image: "{{ existing_image_name }}"
-#                 resources:
-#                   limits:
-#                     cpu: 500m
-#                     memory: 8Gi
-#                   requests:
-#                     cpu: 100m
-#                     memory: 200Mi
+- name: Get info about AAP Deployment
+  kubernetes.core.k8s_info:
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ namespace }}"
+  register: aap_cr_info
 
-# - name: Scale up Hub Content deployment
-#   kubernetes.core.k8s:
-#     api_version: apps/v1
-#     kind: Deployment
-#     namespace: "{{ namespace }}"
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     state: present
-#     merge_type: merge
-#     resource_definition:
-#       apiVersion: apps/v1
-#       kind: Deployment
-#       metadata:
-#         name: "{{ _scenario_name }}-aap-hub-content"
-#         namespace: "{{ namespace }}"
-#       spec:
-#         replicas: 2
-#   register: deployment_scale_up_status                    
+- name: Set controller_host variable
+  ansible.builtin.set_fact:
+    controller_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+  when: aap_cr_info.resources | length > 0 and
+        aap_cr_info.resources[0].status.URL is defined
 
-# - name: Wait for Hub content to be Fully Ready with 2 Replicas
-#   kubernetes.core.k8s_info:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: "{{ _scenario_name }}-aap-hub-content"
-#     namespace: "{{ namespace }}"
-#   register: deploy_ready_status
-#   until:
-#     (deploy_ready_status.resources[0].status.replicas | default(0)) == 2 and
-#     (deploy_ready_status.resources[0].status.readyReplicas | default(0)) == 2 and
-#     (deploy_ready_status.resources[0].status.availableReplicas | default(0)) == 2
-#   retries: 60
-#   delay: 15
+- name: Fail if url is missing
+  ansible.builtin.fail:
+    msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
+  when: controller_host | length == 0      
 
-# - name: Verify Full hub content Deployment Readiness
-#   ansible.builtin.debug:
-#     msg: "Deployment {{ _scenario_name }}-aap-hub-content is fully scaled up and ready with 2 replicas."
-#   when: deploy_ready_status.resources[0].status.readyReplicas == 2
+- name: Update Job Template EE
+  ansible.controller.job_template:
+    controller_host: "{{ controller_host }}"
+    controller_oauthtoken: "{{ aap_oauth2_token }}"
+    validate_certs: false
+    name: "{{ item.name }}"
+    description: "Job Template for Summit Troubleshooting Lab {{ item.suffix }}"
+    organization: "Default"
+    project: "AAP Troubleshooting Demo"
+    inventory: "Summit Inventory"
+    execution_environment: "Default execution environment"
+    playbook: "playbooks/summit-t{{ item.suffix }}.yml"
+    job_type: run
+    allow_simultaneous: true
+    state: present
+  loop:
+    - { name: "SUMMIT-T4", suffix: 4 }
+
+- name: Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates
+  ansible.builtin.debug:
+    msg: |-
+      Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates.
+      SUMMIT-T4 should run now :D
+  no_log: false
