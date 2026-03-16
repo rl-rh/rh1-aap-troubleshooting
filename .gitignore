@@ -1,4 +1,5 @@
 collections/ansible_collections
+collections/requirements.yml
 .vscode/settings.json
 .ansible
 
