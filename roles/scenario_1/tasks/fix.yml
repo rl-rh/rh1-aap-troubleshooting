@@ -4,7 +4,7 @@
     file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
-- name: Delete PVC 'scenario-2-hub-storage'
+- name: Delete PVC 'scenario-1-hub-storage'
   kubernetes.core.k8s:
     api_version: v1
     kind: PersistentVolumeClaim
