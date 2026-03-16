@@ -120,7 +120,7 @@
 - name: Mic check 1....2....3....
   register: _pg_pod
   retries: 30
-  delay: 5
+  delay: 15
   until:
     - _pg_pod['resources'] | length
     - _pg_pod.resources[0].status.phase == "Pending" 
@@ -137,7 +137,7 @@
 - name: Is this thing on?
   register: _gateway_pod
   retries: 30
-  delay: 5
+  delay: 15
   until: 
     _gateway_pod.resources | length > 0 and 
     _gateway_pod.resources | selectattr('status.phase', 'equalto', 'Pending') | list | length > 0
