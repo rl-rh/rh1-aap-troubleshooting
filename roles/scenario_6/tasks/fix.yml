@@ -58,23 +58,23 @@
         replicas: 0
   register: chatbot_deployment_scale_status
 
-- name: Scale down Lightspeed operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "ansible-lightspeed-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "ansible-lightspeed-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: chatbot_deployment_scale_status
+# - name: Scale down Lightspeed operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "ansible-lightspeed-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "ansible-lightspeed-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: chatbot_deployment_scale_status
 
 - name: Apply correct model
   kubernetes.core.k8s:
@@ -95,23 +95,23 @@
         chatbot_token: "{{ chatbot_token | b64encode }}"
         chatbot_url: "{{ chatbot_url | b64encode }}"
 
-- name: Scale up Lightspeed operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "ansible-lightspeed-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "ansible-lightspeed-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: chatbot_operator_scale_status
+# - name: Scale up Lightspeed operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "ansible-lightspeed-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "ansible-lightspeed-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 1
+#   register: chatbot_operator_scale_status
 
 - name: wait a few
   ansible.builtin.pause:

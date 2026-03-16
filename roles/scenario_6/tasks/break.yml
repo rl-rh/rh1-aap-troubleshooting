@@ -72,9 +72,20 @@
     retries: 60
     delay: 20
     until:
-      - _lightspeed_chatbot_api_pod['resources'] | length
-      - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first is defined
-      - _lightspeed_chatbot_api_pod['resources'][0].status.containerStatuses | selectattr('name', 'equalto', 'ansible-chatbot') | map(attribute='ready') | list | first == true
+          # 1. Ensure the pod actually exists
+          - _lightspeed_chatbot_api_pod.resources | default([]) | length > 0
+          # 2. Ensure container statuses are populated
+          - _lightspeed_chatbot_api_pod.resources[0].status.containerStatuses is defined
+          # 3. Safely check if the 'ansible-chatbot' container is currently in a 'waiting' state
+          - >-
+            (_lightspeed_chatbot_api_pod.resources[0].status.containerStatuses | 
+            selectattr('name', 'equalto', 'ansible-chatbot') | 
+            map(attribute='state') | list | first | default({})).waiting is defined
+          # 4. Check if the exact reason for waiting is 'CrashLoopBackOff'
+          - >-
+            (_lightspeed_chatbot_api_pod.resources[0].status.containerStatuses | 
+            selectattr('name', 'equalto', 'ansible-chatbot') | 
+            map(attribute='state') | list | first | default({})).waiting.reason | default('') == 'CrashLoopBackOff'
     kubernetes.core.k8s_info:
       kind: Pod
       api_version: v1
