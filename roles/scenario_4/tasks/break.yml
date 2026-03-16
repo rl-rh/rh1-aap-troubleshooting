@@ -111,6 +111,9 @@
 
     - name: Magic 
       ansible.controller.settings:
+        controller_host: "{{ controller_host }}"
+        controller_oauthtoken: "{{ aap_oauth2_token }}"
+        validate_certs: false
         name: AWX_COLLECTIONS_ENABLED
         value: false
 
