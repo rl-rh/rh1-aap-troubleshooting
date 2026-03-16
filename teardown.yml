@@ -1,0 +1,31 @@
+---
+- name: Preparation - Build User Inventory for Deletion
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  # Set default number of users to match what you deployed
+  vars:
+    num_users: 60
+
+  tasks:
+    - name: Set scenarios list fact
+      ansible.builtin.set_fact:
+        scenarios_list: "{{ (playbook_dir + '/roles/') | list_scenarios }}"
+
+    - name: Create in-memory hosts for parallel execution
+      ansible.builtin.add_host:
+        name: "user-{{ item }}"
+        groups: lab_users
+      with_sequence: start=1 end="{{ num_users }}"
+
+- name: Parallel Deletion by Scenario
+  hosts: lab_users
+  connection: local 
+  gather_facts: false
+  tasks:
+    - name: Execute deletion for each scenario
+      ansible.builtin.include_tasks: delete_scenario.yml
+      loop: "{{ hostvars['localhost']['scenarios_list'] }}"
+      loop_control:
+        loop_var: current_scenario

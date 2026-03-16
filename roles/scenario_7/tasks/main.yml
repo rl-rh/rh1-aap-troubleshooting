@@ -1,4 +1,0 @@
----
-
-- name: Deploy
-  ansible.builtin.import_tasks: deploy.yml

@@ -3,35 +3,38 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  # vars:
+  #   num_users: 60
+  #   batch_size: 10
   tasks:
-    - name: Load user IDs list
-      ansible.builtin.include_vars:
-        file: vars/user_ids.yml
 
     - name: Set scenarios list fact
       ansible.builtin.set_fact:
         scenarios_list: "{{ (playbook_dir + '/roles/') | list_scenarios }}"
+        num_users: "{{ num_users | default(60) }}"
+        batch_size: "{{ batch_size | default(10) }}"
 
     - name: Create in-memory hosts for parallel execution
       ansible.builtin.add_host:
-        name: "{{ item }}"
+        name: "user{{ item }}"
         groups: lab_users
-      loop: "{{ user_ids }}"
+      with_sequence: start=1 end="{{ num_users }}"
 
+    - name: Deploy cluster-scoped operator
+      ansible.builtin.include_role:
+        name: operator
 
 - name: Parallel Deployment by Scenario
   hosts: lab_users
-  # Connection is still local so tasks execute on the control node (pipeline runner)
-  # but they are logically separated by our virtual hosts to enable parallelism!
-  connection: local 
+  connection: local
   gather_facts: false
+  serial: "{{ hostvars['localhost']['batch_size'] }}"
   tasks:
     - name: Execute deployment for each scenario
       ansible.builtin.include_tasks: process_scenario.yml
       loop: "{{ hostvars['localhost']['scenarios_list'] }}"
       loop_control:
         loop_var: current_scenario
-
 
 - name: Pipeline Summary
   hosts: localhost

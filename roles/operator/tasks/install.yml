@@ -16,13 +16,13 @@
 - name: install | Determine latest CSV for the specified channel
   ansible.builtin.set_fact:
     install_starting_csv: >-
-      {{ 
-        (_operator_manifest.resources[0].status.channels 
-        | selectattr('name', 'equalto', install_channel) 
-        | first).currentCSV 
+      {{
+        (_operator_manifest.resources[0].status.channels
+        | selectattr('name', 'equalto', install_channel)
+        | first).currentCSV
       }}
   when: >
-    _operator_manifest.resources | length > 0 and 
+    _operator_manifest.resources | length > 0 and
     install_starting_csv is not defined or install_starting_csv == ""
 
 - name: install | Display the starting CSV being used
@@ -36,9 +36,9 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ install_namespace }}"
+        name: "{{ install_namespace_cluster }}"
         labels:
-          name: "{{ install_namespace }}"
+          name: "{{ install_namespace_cluster }}"
 
 - name: install | Create OperatorGroup for target namespace
   kubernetes.core.k8s:
@@ -48,10 +48,7 @@
       kind: OperatorGroup
       metadata:
         name: aap-operator-group
-        namespace: "{{ install_namespace }}"
-      spec:
-        targetNamespaces:
-          - "{{ install_namespace }}"
+        namespace: "{{ install_namespace_cluster }}"
 
 - name: install | Create OLM Subscription to install the operator
   kubernetes.core.k8s:
@@ -61,7 +58,7 @@
       kind: Subscription
       metadata:
         name: "{{ install_operator_name }}"
-        namespace: "{{ install_namespace }}"
+        namespace: "{{ install_namespace_cluster }}"
         labels: "{{ lookup('ansible.builtin.template', '../templates/operator-labels.j2') | from_yaml }}"
       spec:
         name: "{{ install_operator_name }}"
@@ -79,12 +76,12 @@
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
-        namespace: "{{ install_namespace }}"
+        namespace: "{{ install_namespace_cluster }}"
       until: _install_plans.resources | length > 0
       # FIX: Use parentheses to calculate division first, then convert the result to an integer
       retries: "{{ ((install_wait_minutes * 60) / install_wait_delay) | int }}"
       delay: "{{ install_wait_delay }}"
-      failed_when: _install_plans.resources | length == 0        
+      failed_when: _install_plans.resources | length == 0
 
     - name: install | Approve all install plans
       loop: "{{ _install_plans.resources | default([]) }}"
@@ -94,10 +91,58 @@
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
         name: "{{ item.metadata.name }}"
-        namespace: "{{ install_namespace }}"
+        namespace: "{{ install_namespace_cluster }}"
         definition:
           spec:
             approved: true
+
+- name: install | Get active AAP CSV name
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: "ansible-automation-platform-operator"
+    namespace: "{{ install_namespace_cluster }}"
+  register: sub_info
+
+- name: install | Wait for Subscription to determine the active CSV
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: "ansible-automation-platform-operator"
+    namespace: "{{ install_namespace_cluster }}"
+  register: sub_info
+  # Wait until the Subscription has a status and the currentCSV field is populated
+  until: 
+    - sub_info.resources | length > 0
+    - sub_info.resources[0].status is defined
+    - sub_info.resources[0].status.currentCSV is defined
+    - sub_info.resources[0].status.currentCSV | length > 0
+  retries: 30
+  delay: 10  
+
+- name: install | Set current CSV fact
+  ansible.builtin.set_fact:
+    current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
+
+- name: install | Wait for the CSV resource to be created by OLM
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    name: "{{ current_csv_name }}"
+    namespace: "{{ install_namespace_cluster }}"
+  register: csv_info
+  # Ensure the CSV actually exists in the namespace before we try to patch it
+  until: csv_info.resources | length > 0
+  retries: 30
+  delay: 10
+
+- name: install | Increase resource limits for all Operator deployments in the CSV
+  ansible.builtin.shell: |-
+    oc get csv {{ current_csv_name }} -n {{ install_namespace_cluster }} -o json |
+    jq '.spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.cpu = "4" | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.memory = "10Gi"' |
+    oc replace -f -
+  register: csv_patch_status
+  changed_when: csv_patch_status.rc == 0
 
 - name: install | Wait for Operator installation to complete
   register: _aap_operator_details
@@ -109,6 +154,6 @@
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
-    namespace: "{{ install_namespace }}"
+    namespace: "{{ install_namespace_cluster }}"
     label_selectors:
-      - "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace }}"
+      - "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace_cluster }}"

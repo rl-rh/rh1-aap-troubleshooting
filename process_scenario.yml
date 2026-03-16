@@ -1,7 +1,6 @@
 ---
 - name: Set iteration facts
   ansible.builtin.set_fact:
-    # inventory_hostname represents the user_id (e.g., user1, user2)
     user_id: "{{ inventory_hostname }}"
     scenario_path: "{{ current_scenario.path }}"
     scenario_name: "{{ current_scenario.path | basename }}"
@@ -16,12 +15,23 @@
 
 - name: Set project name fact
   ansible.builtin.set_fact:
-    # Generates namespace: unique_id-scenario_name
     project_name: "{{ user_id }}-{{ _scenario_name }}"
 
-- name: Setup namespace and operator
-  ansible.builtin.include_role:
-    name: operator
+- name: Create target namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ project_name }}"
+        labels:
+          name: "{{ project_name }}"
+
+# Moved to deploy.yml for one time cluster install
+# - name: Setup namespace and operator
+#   ansible.builtin.include_role:
+#     name: operator
 
 - name: Setup scenario
   ansible.builtin.include_role:

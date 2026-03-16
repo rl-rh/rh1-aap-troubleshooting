@@ -35,7 +35,7 @@
           public_base_url: ''
           haproxy_timeout: 180s
           force_drop_db: false
-          loadbalancer_protocol: http      
+          loadbalancer_protocol: http
 
 - name: Wait for Automation Hub API pod
   register: _hub_pod
@@ -54,8 +54,8 @@
       - "app.kubernetes.io/instance=automationhub-api-{{ _scenario_name }}-hub"
       - "app.kubernetes.io/component=api"
 
-- name: Find out what is wrong with the Hub Pods
-  ansible.builtin.debug:
-    msg: |-
-      Hub was deployed, but something is going on with the Hub Pods, find out why.      
-      Note: There is no break step in this scenario. 
+# - name: Find out what is wrong with the Hub Pods
+#   ansible.builtin.debug:
+#     msg: |-
+#       Hub was deployed, but something is going on with the Hub Pods, find out why.
+#       Note: There is no break step in this scenario.
