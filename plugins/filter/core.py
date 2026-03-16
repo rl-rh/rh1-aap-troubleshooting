@@ -1,13 +1,12 @@
 import os
 from pathlib import Path
-from yaml import load, dump
+from yaml import load
 from ansible.errors import AnsibleFilterError
 
 try:
-    from yaml import CSafeDumper as SafeDumper
     from yaml import CSafeLoader as SafeLoader
 except ImportError:
-    from yaml import SafeDumper, SafeLoader  # type: ignore
+    from yaml import SafeLoader  # type: ignore
 
 def list_scenarios(a):
     """
@@ -19,6 +18,7 @@ def list_scenarios(a):
 
     data = []
     scenarios = [d for d in search_dir.iterdir() if d.is_dir() and 'scenario_' in d.name]
+    
     for idx, sc in enumerate(scenarios):
         # read in the main `vars/main.yml` for the scenario as this will contain
         # specific information related to the role.
@@ -32,10 +32,12 @@ def list_scenarios(a):
         # Format should either be scenario_ or scenario-
         if sc_data.get('_id_override', False):
             sc_id = sc_data.get('_id_override')
-        elif 'scenario_' in sc_data.get('_scenario_name'):
-            sc_id = sc_data.get('_scenario_name').lstrip('scenario_')
-        elif 'scenario-' in sc_data.get('_scenario_name'):
-            sc_id = sc_data.get('_scenario_name').lstrip('scenario-')
+        elif 'scenario_' in sc_data.get('_scenario_name', ''):
+            # FIX: Use replace instead of lstrip to avoid stripping valid characters
+            sc_id = sc_data.get('_scenario_name').replace('scenario_', '')
+        elif 'scenario-' in sc_data.get('_scenario_name', ''):
+            # FIX: Use replace instead of lstrip
+            sc_id = sc_data.get('_scenario_name').replace('scenario-', '')
         else:
             continue
 
@@ -45,6 +47,10 @@ def list_scenarios(a):
             'description': sc_data.get('_description', ''),
             'path': f"roles/{os.path.basename(sc)}",
         })
+
+    # FIX: Explicitly sort the list before returning. 
+    # We check if the ID is a digit so that "10" sorts after "9", not after "1".
+    data.sort(key=lambda x: int(x['id']) if x['id'].isdigit() else x['id'])
 
     return data
 

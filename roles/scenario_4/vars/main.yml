@@ -1,9 +1,6 @@
 ---
 _scenario_name: "scenario-4"
-namespace: "{{project_name}}" #""scenario-4"
-_id_override: 4
-
+namespace: "{{ project_name }}"
 _description: "Automation Execution (Controller) Issues"
-
 hub_file_access_mode: ReadWriteMany
 hub_file_storage_class: ocs-external-storagecluster-cephfs
