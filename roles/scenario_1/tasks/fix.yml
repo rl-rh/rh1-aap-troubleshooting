@@ -43,41 +43,41 @@
         file_storage_storage_class: "{{ hub_file_storage_class }}"
         storage_type: file
 
-- name: Scale down Hub operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "automation-hub-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "automation-hub-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: hub_deployment_scale_status
+# - name: Scale down Hub operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "automation-hub-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "automation-hub-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: hub_deployment_scale_status
 
-- name: Scale down gateway operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: gateway_deployment_scale_status
+# - name: Scale down gateway operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: gateway_deployment_scale_status
 
 - name: Delete Deployment 'hub-api'
   kubernetes.core.k8s:
@@ -87,23 +87,23 @@
     namespace: "{{ namespace }}"
     state: absent
 
-- name: Scale up gateway operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: gateway_deployment_scale_status
+# - name: Scale up gateway operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 1
+#   register: gateway_deployment_scale_status
 
 - name: Wait for Automation Hub API pod
   register: _hub_pod
