@@ -40,23 +40,23 @@
         replicas: 0
   register: deployment_scale_status
 
-- name: Scale down Gateway operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: deployment_scale_status
+# - name: Scale down Gateway operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: deployment_scale_status
 
 - name: Scale Down AAP PostgreSQL to 0
   kubernetes.core.k8s:
@@ -193,23 +193,23 @@
         replicas: 1
   register: deployment_scale_status
 
-- name: Scale up Gateway operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: deployment_scale_status
+# - name: Scale up Gateway operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 1
+#   register: deployment_scale_status
 
 - name: Wait for Automation Controller Task pod
   register: _controller_pod

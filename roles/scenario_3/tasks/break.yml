@@ -25,24 +25,24 @@
   register: deployment_scale_status
   no_log: "{{ nolog | default(True) }}"  
 
-- name: Make sure its broken x2
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"        
+# - name: Make sure its broken x2
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: deployment_scale_status
+#   no_log: "{{ nolog | default(True) }}"        
 
 - name: mmm... yes... breaking things
   kubernetes.core.k8s:
@@ -98,24 +98,24 @@
   register: deployment_scale_status
   no_log: "{{ nolog | default(True) }}"  
 
-- name: Extra Broke x2
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "aap-gateway-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "aap-gateway-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: deployment_scale_status
-  no_log: "{{ nolog | default(True) }}"    
+# - name: Extra Broke x2
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "aap-gateway-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "aap-gateway-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 1
+#   register: deployment_scale_status
+#   no_log: "{{ nolog | default(True) }}"    
 
 - name: Mic check 1....2....3....
   register: _pg_pod
