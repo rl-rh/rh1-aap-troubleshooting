@@ -1,0 +1,247 @@
+#Scenario-1
+#critical that there is no defined storage for hub so we get a nice error (it should default to rwo which is the "problem")
+spec:
+  controller:
+    disabled: true
+  eda:
+    disabled: true
+  hub:
+    nginx_proxy_send_timeout: 15s
+    gunicorn_content_workers: 2
+    gunicorn_api_workers: 2
+    route_tls_termination_mechanism: Edge
+    ingress_type: Route
+    loadbalancer_port: 80
+    no_log: true
+    image_pull_policy: IfNotPresent
+    nginx_proxy_read_timeout: 15s
+    gunicorn_timeout: 10
+    nginx_client_max_body_size: 10m
+    nginx_proxy_connect_timeout: 15s
+    public_base_url: ''
+    haproxy_timeout: 180s
+    force_drop_db: false
+    loadbalancer_protocol: http
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-2
+spec:
+  controller:
+    disabled: false
+  eda:
+    disabled: true
+  hub:
+    api:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+    content:
+      resource_requirements:
+        limits:
+          cpu: 500m
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+    disabled: false
+    file_storage_access_mode: ReadWriteMany
+    file_storage_size: 25Mi
+    file_storage_storage_class: ocs-external-storagecluster-cephfs
+    storage_type: file
+    worker:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-3
+spec:
+  controller:
+    disabled: false
+  eda:
+    disabled: true
+  hub:
+    api:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+    content:
+      resource_requirements:
+        limits:
+          cpu: 500m
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+    disabled: false
+    file_storage_access_mode: ReadWriteMany
+    file_storage_size: 25Mi
+    file_storage_storage_class: ocs-external-storagecluster-cephfs
+    storage_type: file
+    worker:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-4
+spec:
+  controller:
+    disabled: false
+  eda:
+    disabled: true
+  hub:
+    api:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+    content:
+      resource_requirements:
+        limits:
+          cpu: 500m
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+    disabled: false
+    file_storage_access_mode: ReadWriteMany
+    file_storage_size: 25Mi
+    file_storage_storage_class: ocs-external-storagecluster-cephfs
+    storage_type: file
+    worker:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-5
+spec:
+  controller:
+    disabled: false
+  eda:
+    disabled: true
+  hub:
+    api:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+    content:
+      resource_requirements:
+        limits:
+          cpu: 500m
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+    disabled: false
+    file_storage_access_mode: ReadWriteMany
+    file_storage_size: 25Mi
+    file_storage_storage_class: ocs-external-storagecluster-cephfs
+    storage_type: file
+    worker:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-6
+spec:
+  controller:
+    disabled: false
+  eda:
+    disabled: true
+  hub:
+    api:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+    content:
+      resource_requirements:
+        limits:
+          cpu: 500m
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+    disabled: false
+    file_storage_access_mode: ReadWriteMany
+    file_storage_size: 25Mi
+    file_storage_storage_class: ocs-external-storagecluster-cephfs
+    storage_type: file
+    worker:
+      resource_requirements:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+#Scenario-7
+spec:
+  api:
+    replicas: 1
+  eda:
+    disabled: false
+    activation_worker:
+      replicas: 0
+  hub:
+    disabled: true
+  controller:
+    disabled: false
+  lightspeed:
+    disabled: true
