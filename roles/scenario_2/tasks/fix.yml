@@ -6,89 +6,89 @@
     file: "{{ role_path }}/vars/main.yml"
     hash_behaviour: replace
 
-- name: Set the table
-  ansible.builtin.set_fact:
-    user_confirmation: "no"
+# - name: Set the table
+#   ansible.builtin.set_fact:
+#     user_confirmation: "no"
 
-- name: Find the first issue?
-  ansible.builtin.pause:
-    prompt: |-
-      Did you figure out and fix the first issue? There were two issues. 
-      (yes or no)
-      (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
-    echo: yes
-  register: confirmation_input
-  until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
-  retries: 99999
-  delay: 0
+# - name: Find the first issue?
+#   ansible.builtin.pause:
+#     prompt: |-
+#       Did you figure out and fix the first issue? There were two issues. 
+#       (yes or no)
+#       (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
+#     echo: yes
+#   register: confirmation_input
+#   until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
+#   retries: 99999
+#   delay: 0
 
-- name: Get UID of the AnsibleAutomationPlatform CR
-  kubernetes.core.k8s_info:
-    api_version: aap.ansible.com/v1alpha1
-    kind: AnsibleAutomationPlatform
-    name: "{{ _scenario_name }}-aap"
-    namespace: "{{ namespace }}"
-  register: aap_cr_info    
+# - name: Get UID of the AnsibleAutomationPlatform CR
+#   kubernetes.core.k8s_info:
+#     api_version: aap.ansible.com/v1alpha1
+#     kind: AnsibleAutomationPlatform
+#     name: "{{ _scenario_name }}-aap"
+#     namespace: "{{ namespace }}"
+#   register: aap_cr_info    
 
-- name: "Create the {{ _scenario_name }}-aap-postgres-15 service"
-  kubernetes.core.k8s:
-    api_version: v1
-    kind: Service
-    name: "{{ _scenario_name }}-aap-postgres-15"
-    namespace: "{{ namespace }}" 
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: "{{ _scenario_name }}-aap-postgres-15"
-        namespace: "{{ namespace }}" 
-        ownerReferences:
-          - apiVersion: aap.ansible.com/v1alpha1
-            kind: AnsibleAutomationPlatform
-            name: "{{ _scenario_name }}-aap"
-            uid: "{{ aap_cr_info.resources[0].metadata.uid }}"
-        labels:
-          app.kubernetes.io/component: database
-          app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
-          app.kubernetes.io/managed-by: aap-gateway-operator
-          app.kubernetes.io/name: postgres-15
-      spec:
-        clusterIP: None
-        ipFamilies:
-          - IPv4
-        ports:
-          - name: '5432'
-            protocol: TCP
-            port: 5432
-            targetPort: 5432
-        internalTrafficPolicy: Cluster
-        clusterIPs:
-          - None
-        type: ClusterIP
-        ipFamilyPolicy: SingleStack
-        sessionAffinity: None
-        selector:
-          app.kubernetes.io/component: database
-          app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
-          app.kubernetes.io/managed-by: aap-gateway-operator
-          app.kubernetes.io/name: postgres-15   
+# - name: "Create the {{ _scenario_name }}-aap-postgres-15 service"
+#   kubernetes.core.k8s:
+#     api_version: v1
+#     kind: Service
+#     name: "{{ _scenario_name }}-aap-postgres-15"
+#     namespace: "{{ namespace }}" 
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: Service
+#       metadata:
+#         name: "{{ _scenario_name }}-aap-postgres-15"
+#         namespace: "{{ namespace }}" 
+#         ownerReferences:
+#           - apiVersion: aap.ansible.com/v1alpha1
+#             kind: AnsibleAutomationPlatform
+#             name: "{{ _scenario_name }}-aap"
+#             uid: "{{ aap_cr_info.resources[0].metadata.uid }}"
+#         labels:
+#           app.kubernetes.io/component: database
+#           app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
+#           app.kubernetes.io/managed-by: aap-gateway-operator
+#           app.kubernetes.io/name: postgres-15
+#       spec:
+#         clusterIP: None
+#         ipFamilies:
+#           - IPv4
+#         ports:
+#           - name: '5432'
+#             protocol: TCP
+#             port: 5432
+#             targetPort: 5432
+#         internalTrafficPolicy: Cluster
+#         clusterIPs:
+#           - None
+#         type: ClusterIP
+#         ipFamilyPolicy: SingleStack
+#         sessionAffinity: None
+#         selector:
+#           app.kubernetes.io/component: database
+#           app.kubernetes.io/instance: "postgres-15-{{ _scenario_name }}-aap"
+#           app.kubernetes.io/managed-by: aap-gateway-operator
+#           app.kubernetes.io/name: postgres-15   
 
-- name: Set the table
-  ansible.builtin.set_fact:
-    second_user_confirmation: "no"
+# - name: Set the table
+#   ansible.builtin.set_fact:
+#     second_user_confirmation: "no"
 
-- name: Find the second issue?
-  ansible.builtin.pause:
-    prompt: |-
-      Did you figure out and fix the second issue? There were two issues. 
-      (yes or no)
-      (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
-    echo: yes
-  register: confirmation_input
-  until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
-  retries: 99999
-  delay: 0                    
+# - name: Find the second issue?
+#   ansible.builtin.pause:
+#     prompt: |-
+#       Did you figure out and fix the second issue? There were two issues. 
+#       (yes or no)
+#       (Entering yes will fix the lab. Enter no, or wait until you find the issue to fix the lab)
+#     echo: yes
+#   register: confirmation_input
+#   until: confirmation_input.user_input is defined and confirmation_input.user_input | lower == 'yes'
+#   retries: 99999
+#   delay: 0                    
 
 - name: Find the current gateway admin secret
   kubernetes.core.k8s_info:

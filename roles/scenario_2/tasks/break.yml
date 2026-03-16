@@ -46,14 +46,14 @@
   changed_when: command_output.rc == 0
   no_log: "{{ nolog | default(True) }}"
 
-- name: Whats in a name?
-  kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: "ansible-automation-platform-operator"
-    namespace: "{{ namespace }}"
-  register: sub_info
-  no_log: "{{ nolog | default(True) }}"
+# - name: Whats in a name?
+#   kubernetes.core.k8s_info:
+#     api_version: operators.coreos.com/v1alpha1
+#     kind: Subscription
+#     name: "ansible-automation-platform-operator"
+#     namespace: "{{ namespace }}"
+#   register: sub_info
+#   no_log: "{{ nolog | default(True) }}"
 
 # - name: Finding something else
 #   ansible.builtin.set_fact:
@@ -70,12 +70,12 @@
 #   failed_when: csv_patch_status.rc != 0
 #   no_log: "{{ nolog | default(True) }}"
 
-- name: Making changes to prod on a friday
-  kubernetes.core.k8s:
-    api_version: v1
-    kind: Service
-    name: "{{ _scenario_name }}-aap-postgres-15"
-    namespace: "{{ namespace }}"
-    state: absent
-  register: route_delete_status
-  no_log: "{{ nolog | default(True) }}"
+# - name: Making changes to prod on a friday
+#   kubernetes.core.k8s:
+#     api_version: v1
+#     kind: Service
+#     name: "{{ _scenario_name }}-aap-postgres-15"
+#     namespace: "{{ namespace }}"
+#     state: absent
+#   register: route_delete_status
+#   no_log: "{{ nolog | default(True) }}"
