@@ -75,7 +75,7 @@
         # role will be operating within.
         #
         # There are some roles such as scenario_12 which enhance other scenarios such as scenario_1
-        project_name: "{{student_ns)-{{ _scenario_name }}"
+        project_name: "{{student_ns}}-{{ _scenario_name }}"
         break_fix: "{{ break_fix }}"   
 
     - name: Break or fix?
