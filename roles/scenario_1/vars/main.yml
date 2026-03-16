@@ -1,5 +1,4 @@
 ---
-
 _scenario_name: "scenario-1"
 namespace: "{{project_name}}" #""scenario-1"
 _id_override: 1
