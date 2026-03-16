@@ -84,6 +84,24 @@
         - "app.kubernetes.io/managed-by=ansible-lightspeed-operator"
         - "app.kubernetes.io/component=ansible-lightspeed-chatbot-api"
 
+  - name: Ensure AAP CR is Ready and URL is Populated
+    kubernetes.core.k8s_info:
+      api_version: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      name: "{{ _scenario_name }}-aap"
+      namespace: "{{ namespace }}"
+    register: aap_status
+    retries: 80
+    delay: 10
+    until: 
+      aap_status.resources | length > 0 and
+      aap_status.resources[0].status.conditions | 
+        selectattr('type', 'equalto', 'Successful') | 
+        selectattr('status', 'equalto', 'True') | 
+        list | length > 0 and
+      aap_status.resources[0].status.URL is defined and 
+      aap_status.resources[0].status.URL | length > 0            
+
   - name: Get Admin Password Secret
     kubernetes.core.k8s_info:
       api_version: v1
