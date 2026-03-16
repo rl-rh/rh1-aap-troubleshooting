@@ -139,7 +139,7 @@
 - name: install | Increase resource limits for all Operator deployments in the CSV
   ansible.builtin.shell: |-
     oc get csv {{ current_csv_name }} -n {{ install_namespace_cluster }} -o json |
-    jq '.spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.cpu = "4" | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.memory = "10Gi"' |
+    jq '.spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.cpu = "16" | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.memory = "16Gi"' |
     oc replace -f -
   register: csv_patch_status
   changed_when: csv_patch_status.rc == 0
