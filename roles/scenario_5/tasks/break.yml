@@ -144,5 +144,5 @@
 
     - name: Do a thing
       ansible.builtin.debug:
-        msg: Now please go sync the community remote in Hub
+        msg: Now please go sync the community repository in Hub
       no_log: false
