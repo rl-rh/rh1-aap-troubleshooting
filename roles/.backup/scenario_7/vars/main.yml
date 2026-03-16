@@ -1,0 +1,5 @@
+---
+_scenario_name: "scenario-7"
+namespace: "{{project_name}}" #""scenario-7"
+_id_override: 7
+_description: "Describe scenario"

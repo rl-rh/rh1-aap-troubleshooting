@@ -1,0 +1,66 @@
+---
+
+- name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Gather some facts
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.setup:
+    filter: "ansible_date_time"
+
+  # Let's do something with the secrets
+- name: I thought they smelled bad on the outside
+  loop:
+    - "{{ _scenario_name }}-aap-controller-secret-key"
+    - "{{ _scenario_name }}-aap-eda-db-fields-encryption-secret"
+    - "{{ _scenario_name }}-aap-db-fields-encryption-secret"
+  loop_control:
+    loop_var: secret_name
+  ansible.builtin.include_tasks:
+    file: break-secret.yml
+
+- name: You're a wizard Harry
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: patched
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        controller:
+          auto_upgrade: false
+        database:
+          resource_requirements:
+            requests:
+              cpu: '5m'
+              memory: '10Mi'
+            limits:
+              cpu: '5m'
+              memory: '10Mi'
+
+- name: Everything is broke now! Time to reboot!
+  loop:
+    - "{{ _scenario_name }}-aap-gateway"
+    - "{{ _scenario_name }}-aap-controller-web"
+    - "{{ _scenario_name }}-aap-controller-task"
+    - "{{ _scenario_name }}-aap-eda-api"
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ item }}"
+        namespace: "{{ namespace }}"
+      spec:
+        template:
+          metadata:
+            annotations:
+              kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -Iseconds') }}"

@@ -1,0 +1,260 @@
+---
+
+- name: Set role variables
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Wait for AAP CR to be Ready and URL to be Populated
+  kubernetes.core.k8s_info:
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ project_name }}"
+  register: aap_status
+  retries: 6 # Wait for 30 seconds
+  delay: 5
+  until:
+    - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
+    - aap_status | community.general.json_query("resources[0].status.URL")
+
+- name: Get admin password
+  register: _admin_password
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ _scenario_name }}-aap-admin-password"
+    namespace: "{{ project_name }}"
+
+- name: Get route
+  register: _route_info
+  no_log: "{{ nolog | default(true) }}"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ _scenario_name }}-aap"
+    namespace: "{{ project_name }}"
+
+- name: Set credentials to internal variable
+  no_log: "{{ nolog | default(true) }}"
+  ansible.builtin.set_fact:
+    aap_hostname: "https://{{ _route_info.resources[0].spec.host }}"
+    aap_username: admin
+    aap_password: "{{ _admin_password.resources[0].data['password'] | b64decode }}"
+
+# - name: Create LDAP
+#   ansible.builtin.import_tasks: deploy-ldap.yml
+
+# - name: Create LDAP Authenticator on Platform Gateway
+#   ansible.platform.authenticator:
+#     # Connection details
+#     aap_hostname: "{{ aap_hostname }}"
+#     aap_username: "{{ aap_username }}"
+#     aap_password: "{{ aap_password }}"
+#     validate_certs: false
+
+#     # Authenticator Details
+#     name: "LDAP"
+#     slug: "ldap"
+#     type: "ansible_base.authentication.authenticator_plugins.ldap"
+#     enabled: true
+#     create_objects: true # Auto-create users in AAP upon login
+#     remove_users: true  # Don't delete users if they fail a map sync
+
+#     # The specific LDAP configuration (Differs from legacy Controller settings)
+#     configuration:
+#       SERVER_URI:
+#         - "ldap://ldap-service:389"
+#       BIND_DN: "cn=admin,dc=planetexpress,dc=com"
+#       BIND_PASSWORD: "GoodNewsEveryone"
+#       # User Search: [Base DN, Scope, Filter]
+#       USER_SEARCH:
+#         - ou=people,dc=planetexpress,dc=com
+#         - SCOPE_SUBTREE
+#         - (uid=%(user)s)
+#       # Optional: Group Search
+#       GROUP_SEARCH:
+#         - dc=planetexpress,dc=com
+#         - SCOPE_SUBTREE
+#         - (objectClass=group)
+#       GROUP_TYPE: "MemberDNGroupType"
+#       GROUP_TYPE_PARAMS:
+#         member_attr: "member"
+#         name_attr: "cn"
+#       USER_ATTR_MAP:
+#         first_name: "givenName"
+#         last_name: "sn"
+#         email: "mail"
+
+# - name: Map LDAP Groups to Gateway Permissions (Superuser)
+#   ansible.platform.authenticator_map:
+#     aap_hostname: "{{ aap_hostname }}"
+#     aap_username: "{{ aap_username }}"
+#     aap_password: "{{ aap_password }}"
+#     validate_certs: false
+
+#     authenticator: "LDAP" # Must match the slug or name above
+#     name: "Grant Superuser to Admins"
+#     map_type: "is_superuser"
+#     revoke: true
+#     triggers:
+#       groups:
+#         has_and:
+#           - "cn=admin_staff,ou=people,dc=planetexpress,dc=com"
+
+### Create resources for Automation Controller
+- name: Create Inventory - Local
+  ansible.controller.inventory:
+    name: Local
+    organization: Default
+    state: present
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Host - Local - localhost
+  ansible.controller.host:
+    name: localhost
+    inventory: Local
+    variables:
+      ansible_host: 127.0.0.1
+      ansible_connection: local
+      ansible_python_interpreter: !unsafe "{{ ansible_playbook_python }}"
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Project - {{ scm_project_name }}
+  ansible.controller.project:
+    name: "{{ scm_project_name }}"
+    organization: Default
+    scm_type: git
+    scm_url: "{{ scm_project_url }}"
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Job Template - Dummy Template
+  ansible.controller.job_template:
+    name: Ping
+    job_type: run
+    organization: Default
+    inventory: Local
+    project: "{{ scm_project_name }}"
+    playbook: playbooks/ping.yml
+    allow_simultaneous: true
+    request_timeout: 60
+    verbosity: 3
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+### Create resources for EDA Server
+- name: Create Credential - RH AAP
+  ansible.eda.credential:
+    name: RH AAP Credential
+    credential_type_name: Red Hat Ansible Automation Platform
+    organization_name: Default
+    inputs:
+      host: "{{ aap_hostname }}"
+      username: "{{ aap_username }}"
+      password: "{{ aap_password }}"
+      verify_ssl: false
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Credential - Basic Event Stream
+  ansible.eda.credential:
+    name: Basic Event Stream Credential
+    credential_type_name: Basic Event Stream
+    organization_name: Default
+    inputs:
+      username: "admin"
+      password: "admin"
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Decision Environment
+  ansible.eda.decision_environment:
+    name: "Decision Environment - {{ _scenario_name }}"
+    image_url: "registry.redhat.io/ansible-automation-platform-26/de-supported-rhel9:latest"
+    organization_name: Default
+    state: present
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create Project
+  ansible.eda.project:
+    name: "{{ scm_project_name }}"
+    url: "{{ scm_project_url }}"
+    organization_name: Default
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create event stream
+  ansible.eda.event_stream:
+    name: Event Stream - {{ event_stream_name }}
+    uuid: "{{ event_stream_name }}"
+    credential_name: Basic Event Stream Credential
+    organization_name: Default
+    forward_events: true
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false
+
+- name: Create rulebook activation
+  ignore_errors: true
+  loop:
+    - state: absent
+    - state: present
+  ansible.eda.rulebook_activation:
+    name: "{{ scm_project_name }} - Rulebook Activation"
+    project_name: "{{ scm_project_name }}"
+    rulebook_name: main.yml
+    state: "{{ item.state }}"
+    organization_name: Default
+    restart_policy: always
+    decision_environment_name: "Decision Environment - {{ _scenario_name }}"
+    event_streams:
+      - event_stream: Event Stream - {{ event_stream_name }}
+        source_name:  test
+    eda_credentials:
+      - RH AAP Credential
+
+    # Credentials
+    controller_host: "{{ aap_hostname }}"
+    controller_username: "{{ aap_username }}"
+    controller_password: "{{ aap_password }}"
+    validate_certs: false

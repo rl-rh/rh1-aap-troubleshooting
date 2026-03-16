@@ -1,0 +1,45 @@
+---
+
+- name: Set role variables
+  no_log: "{{ nolog | default(True) }}"
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Create custom resource
+  no_log: "{{ nolog | default(True) }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: aap.ansible.com/v1alpha1
+      kind: AnsibleAutomationPlatform
+      metadata:
+        name: "{{ _scenario_name }}-aap"
+        namespace: "{{ namespace }}"
+      spec:
+        api:
+          replicas: 1
+        eda:
+          disabled: false
+          activation_worker:
+            replicas: 0
+        hub:
+          disabled: true
+        controller:
+          disabled: false
+        lightspeed:
+          disabled: true
+        no_log: true
+
+# - name: Wait for AAP CR to be Ready and URL to be Populated
+#   kubernetes.core.k8s_info:
+#     api_version: aap.ansible.com/v1alpha1
+#     kind: AnsibleAutomationPlatform
+#     name: "{{ _scenario_name }}-aap"
+#     namespace: "{{ namespace }}"
+#   register: aap_status
+#   retries: 80 # Check for up to 13 minutes
+#   delay: 20
+#   until:
+#     - aap_status | community.general.json_query("resources[0].status.conditions[?type=='Successful' && status=='True']")
+#     - aap_status | community.general.json_query("resources[0].status.URL")

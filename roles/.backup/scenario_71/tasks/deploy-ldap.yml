@@ -1,0 +1,38 @@
+---
+
+- name: Create LDAP Pod
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: "ldap-pod"
+        namespace: "{{ namespace }}"
+        labels:
+          app: ldap-test
+      spec:
+        containers:
+          - name: test-openldap
+            image: docker.io/rroemhild/test-openldap:latest
+            ports:
+              - containerPort: 10389
+                name: ldap-test
+
+- name: Create LDAP Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: ldap-service
+        namespace: "{{ namespace }}"
+      spec:
+        selector:
+          app: ldap-test
+        ports:
+          - name: ldap
+            port: 389
+            targetPort: 10389
+        type: ClusterIP
