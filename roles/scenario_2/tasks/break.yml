@@ -60,15 +60,15 @@
     current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
   no_log: "{{ nolog | default(True) }}"
 
-- name: No name task
-  ansible.builtin.shell:
-    cmd: >
-      oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json'
-      -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":0}]'
-  register: csv_patch_status
-  changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
-  failed_when: csv_patch_status.rc != 0
-  no_log: "{{ nolog | default(True) }}"
+# - name: No name task
+#   ansible.builtin.shell:
+#     cmd: >
+#       oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json'
+#       -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":0}]'
+#   register: csv_patch_status
+#   changed_when: csv_patch_status.rc == 0 and ('patched' in csv_patch_status.stdout or 'patched' in csv_patch_status.stderr)
+#   failed_when: csv_patch_status.rc != 0
+#   no_log: "{{ nolog | default(True) }}"
 
 - name: Making changes to prod on a friday
   kubernetes.core.k8s:

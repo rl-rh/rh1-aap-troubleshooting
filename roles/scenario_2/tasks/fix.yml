@@ -159,50 +159,50 @@
   ansible.builtin.set_fact:
     current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
 
-- name: Revert CSV Patch Set Gateway Operator Replicas back to 1
-  ansible.builtin.shell:
-    cmd: >
-      oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json' 
-      -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":1}]'
-  register: csv_revert_status
-  changed_when: csv_revert_status.rc == 0 and ('patched' in csv_revert_status.stdout or 'patched' in csv_revert_status.stderr)
-  failed_when: csv_revert_status.rc != 0
+# - name: Revert CSV Patch Set Gateway Operator Replicas back to 1
+#   ansible.builtin.shell:
+#     cmd: >
+#       oc patch csv {{ current_csv_name }} -n {{ namespace }} --type='json' 
+#       -p='[{"op":"replace", "path":"/spec/install/spec/deployments/0/spec/replicas", "value":1}]'
+#   register: csv_revert_status
+#   changed_when: csv_revert_status.rc == 0 and ('patched' in csv_revert_status.stdout or 'patched' in csv_revert_status.stderr)
+#   failed_when: csv_revert_status.rc != 0
 
-- name: Scale down Hub operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "automation-hub-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "automation-hub-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 0
-  register: hub_deployment_scale_status
+# - name: Scale down Hub operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "automation-hub-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "automation-hub-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 0
+#   register: hub_deployment_scale_status
 
-- name: Scale up Hub operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ namespace }}"
-    name: "automation-hub-operator-controller-manager"
-    state: present
-    merge_type: merge
-    resource_definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: "automation-hub-operator-controller-manager"
-        namespace: "{{ namespace }}"
-      spec:
-        replicas: 1
-  register: hub_deployment_scale_status  
+# - name: Scale up Hub operator deployment
+#   kubernetes.core.k8s:
+#     api_version: apps/v1
+#     kind: Deployment
+#     namespace: "{{ namespace }}"
+#     name: "automation-hub-operator-controller-manager"
+#     state: present
+#     merge_type: merge
+#     resource_definition:
+#       apiVersion: apps/v1
+#       kind: Deployment
+#       metadata:
+#         name: "automation-hub-operator-controller-manager"
+#         namespace: "{{ namespace }}"
+#       spec:
+#         replicas: 1
+#   register: hub_deployment_scale_status  
 
 - name: Wait for Automation Hub API pod
   register: _hub_pod
