@@ -9,7 +9,7 @@
     api_version: v1
     kind: PersistentVolumeClaim
     name: "{{ _scenario_name }}-hub-file-storage"
-    namespace: "{{ _scenario_name }}"
+    namespace: "{{ namespace }}"
     state: absent
 
 - name: Update AAP custom resource
