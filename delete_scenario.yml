@@ -1,0 +1,29 @@
+---
+- name: Set iteration facts
+  ansible.builtin.set_fact:
+    user_id: "{{ inventory_hostname }}"
+    scenario_path: "{{ current_scenario.path }}"
+
+- name: Get scenario variables
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/{{ scenario_path }}/vars/main.yml"
+    hash_behaviour: replace
+
+- name: Set project name fact
+  ansible.builtin.set_fact:
+    project_name: "{{ user_id }}-{{ _scenario_name }}"
+
+- name: "Delete namespace {{ project_name }}"
+  kubernetes.core.k8s:
+    api_version: project.openshift.io/v1
+    kind: Project
+    name: "{{ project_name }}"
+    state: absent
+    # Set to 'yes' if you want Ansible to wait until it's completely gone. 
+    # Set to 'no' for a "fire-and-forget" instant script finish.
+    wait: no
+    wait_timeout: 300
+    wait_sleep: 5
+    wait_condition:
+      type: Absent
+      status: True
