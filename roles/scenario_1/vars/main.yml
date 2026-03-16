@@ -2,6 +2,7 @@
 _scenario_name: "scenario-1"
 namespace: "{{project_name}}" #""scenario-1"
 _id_override: 1
+
 _description: "Automation Content (Private Automation Hub) Issues"
 
 hub_file_access_mode: ReadWriteMany
