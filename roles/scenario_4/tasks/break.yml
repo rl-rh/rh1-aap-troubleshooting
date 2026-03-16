@@ -109,6 +109,11 @@
         msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status (status.URL is missing or empty)."
       when: controller_host | length == 0
 
+    - name: Magic 
+      ansible.controller.settings:
+        name: AWX_COLLECTIONS_ENABLED
+        value: false
+
     - name: Applying the One Ring's Policy
       ansible.controller.project:
         controller_host: "{{ controller_host }}"
