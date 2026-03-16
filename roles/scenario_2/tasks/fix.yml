@@ -147,17 +147,17 @@
   changed_when: command_output.rc == 0
   no_log: "{{ nolog | default(True) }}"  
 
-- name: Get Active CSV Name from Subscription
-  kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: "ansible-automation-platform-operator" 
-    namespace: "{{ namespace }}"
-  register: sub_info
+# - name: Get Active CSV Name from Subscription
+#   kubernetes.core.k8s_info:
+#     api_version: operators.coreos.com/v1alpha1
+#     kind: Subscription
+#     name: "ansible-automation-platform-operator" 
+#     namespace: "{{ namespace }}"
+#   register: sub_info
 
-- name: Set Active CSV Name fact
-  ansible.builtin.set_fact:
-    current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
+# - name: Set Active CSV Name fact
+#   ansible.builtin.set_fact:
+#     current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
 
 # - name: Revert CSV Patch Set Gateway Operator Replicas back to 1
 #   ansible.builtin.shell:
