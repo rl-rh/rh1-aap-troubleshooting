@@ -15,7 +15,7 @@
 
     - name: Create in-memory hosts for parallel execution
       ansible.builtin.add_host:
-        name: "user-{{ item }}"
+        name: "user{{ item }}"
         groups: lab_users
       with_sequence: start=1 end="{{ num_users }}"
 
