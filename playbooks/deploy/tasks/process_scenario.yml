@@ -1,0 +1,52 @@
+---
+
+- name: Set iteration facts
+  ansible.builtin.set_fact:
+    user_id: "{{ inventory_hostname }}"
+    scenario_path: "{{ current_scenario.path }}"
+
+- name: Get scenario variables
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+    hash_behaviour: replace
+  loop:
+    - "{{ scenario_path }}/vars/operator.yml"
+    - "{{ scenario_path }}/vars/main.yml"
+
+- name: Set scenario name fact
+  ansible.builtin.set_fact:
+    scenario_name: "{{ _scenario_name }}"
+
+- name: Set project name fact
+  ansible.builtin.set_fact:
+    project_name: "{{ user_id }}-{{ scenario_name }}"
+
+- name: Create namespace and install operator
+  ansible.builtin.include_role:
+    name: operator
+  vars:
+    install_scope: namespace
+    install_namespace: "{{ project_name }}"
+  when: scope == 'namespace'
+
+- name: Create target namespace for cluster-scoped operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ project_name }}"
+        labels:
+          name: "{{ project_name }}"
+  register: _ns_result
+  retries: "{{ install_wait_retries | default(60) }}"
+  delay: "{{ install_wait_delay | default(30) }}"
+  until: _ns_result is not failed
+  when: scope == 'cluster'
+
+- name: Setup scenario
+  ansible.builtin.include_role:
+    name: "{{ scenario_name }}"
+  vars:
+    namespace: "{{ project_name }}"

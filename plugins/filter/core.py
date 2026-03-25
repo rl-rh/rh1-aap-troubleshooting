@@ -45,7 +45,7 @@ def list_scenarios(a):
             "id": str(sc_id),
             "name": sc_data.get('_scenario_name', '').strip(),
             'description': sc_data.get('_description', ''),
-            'path': f"roles/{os.path.basename(sc)}",
+            'path': f"{os.path.realpath(sc)}",
         })
 
     # FIX: Explicitly sort the list before returning. 

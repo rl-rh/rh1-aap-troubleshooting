@@ -1,19 +1,17 @@
 ---
 
-- name: install | Read in role variables
-  ansible.builtin.include_vars:
-    file: vars/main.yml
-    hash_behaviour: replace
-
-- name: install | Get PackageManifest for the AAP operator
+- name: "[{{ install_namespace }}] Get PackageManifest for the AAP operator"
   kubernetes.core.k8s_info:
     api_version: packages.operators.coreos.com/v1
     kind: PackageManifest
     name: "{{ install_operator_name }}"
     namespace: "{{ install_source_namespace }}"
   register: _operator_manifest
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
+  until: _operator_manifest.resources | length > 0
 
-- name: install | Determine latest CSV for the specified channel
+- name: "[{{ install_namespace }}] Determine latest CSV for the specified channel"
   ansible.builtin.set_fact:
     install_starting_csv: >-
       {{
@@ -21,139 +19,177 @@
         | selectattr('name', 'equalto', install_channel)
         | first).currentCSV
       }}
-  when: >
-    _operator_manifest.resources | length > 0 and
-    install_starting_csv is not defined or install_starting_csv == ""
+  when:
+    - _operator_manifest.resources | length > 0
+    - install_starting_csv is not defined or install_starting_csv == ""
 
-- name: install | Display the starting CSV being used
+- name: "[{{ install_namespace }}] Display the starting CSV being used"
   ansible.builtin.debug:
     msg: "Installing AAP Operator using Starting CSV: {{ install_starting_csv }}"
 
-- name: install | Create target namespace
+- name: "[{{ install_namespace }}] Create namespace, OperatorGroup, and Subscription"
   kubernetes.core.k8s:
     state: present
     definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: "{{ install_namespace_cluster }}"
-        labels:
-          name: "{{ install_namespace_cluster }}"
+      - apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: "{{ install_namespace }}"
+          labels:
+            name: "{{ install_namespace }}"
+      - apiVersion: operators.coreos.com/v1
+        kind: OperatorGroup
+        metadata:
+          name: aap-operator-group
+          namespace: "{{ install_namespace }}"
+        spec:
+          targetNamespaces: "{{ install_operator_group_target_namespaces }}"
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: Subscription
+        metadata:
+          name: "{{ install_operator_name }}"
+          namespace: "{{ install_namespace }}"
+          labels: "{{ lookup('ansible.builtin.template', '../templates/operator-labels.j2') | from_yaml }}"
+        spec:
+          name: "{{ install_operator_name }}"
+          source: "{{ install_catalog_source }}"
+          sourceNamespace: "{{ install_source_namespace }}"
+          installPlanApproval: "{{ install_plan_approval }}"
+          channel: "{{ install_channel }}"
+          startingCSV: "{{ install_starting_csv }}"
+  register: _create_result
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
+  until: _create_result is not failed
 
-- name: install | Create OperatorGroup for target namespace
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: operators.coreos.com/v1
-      kind: OperatorGroup
-      metadata:
-        name: aap-operator-group
-        namespace: "{{ install_namespace_cluster }}"
-
-- name: install | Create OLM Subscription to install the operator
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: operators.coreos.com/v1alpha1
-      kind: Subscription
-      metadata:
-        name: "{{ install_operator_name }}"
-        namespace: "{{ install_namespace_cluster }}"
-        labels: "{{ lookup('ansible.builtin.template', '../templates/operator-labels.j2') | from_yaml }}"
-      spec:
-        name: "{{ install_operator_name }}"
-        source: "{{ install_catalog_source }}"
-        sourceNamespace: "{{ install_source_namespace }}"
-        installPlanApproval: "{{ install_plan_approval }}"
-        channel: "{{ install_channel }}"
-        startingCSV: "{{ install_starting_csv }}"
-
-- name: install | Auto-approve manual install plan
+- name: "[{{ install_namespace }}] Auto-approve manual install plan"
   when: install_plan_approval | lower == 'manual'
   block:
-    - name: install | Find all install plans
-      register: _install_plans
+    - name: "[{{ install_namespace }}] Wait for InstallPlans to appear"
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
-        namespace: "{{ install_namespace_cluster }}"
-      until: _install_plans.resources | length > 0
-      # FIX: Use parentheses to calculate division first, then convert the result to an integer
-      retries: "{{ ((install_wait_minutes * 60) / install_wait_delay) | int }}"
+        namespace: "{{ install_namespace }}"
+      register: _install_plans
+      retries: "{{ install_wait_retries }}"
       delay: "{{ install_wait_delay }}"
-      failed_when: _install_plans.resources | length == 0
+      until: _install_plans.resources | length > 0
 
-    - name: install | Approve all install plans
-      loop: "{{ _install_plans.resources | default([]) }}"
-      when: item.status.phase == 'RequiresApproval'
+    - name: "[{{ install_namespace }}] Approve install plans that require approval"
       kubernetes.core.k8s:
         state: present
         api_version: operators.coreos.com/v1alpha1
         kind: InstallPlan
         name: "{{ item.metadata.name }}"
-        namespace: "{{ install_namespace_cluster }}"
+        namespace: "{{ install_namespace }}"
         definition:
           spec:
             approved: true
+      loop: "{{ _install_plans.resources | default([]) }}"
+      when:
+        - item.status is defined
+        - item.status.phase is defined
+        - item.status.phase == 'RequiresApproval'
 
-- name: install | Get active AAP CSV name
+  rescue:
+    - name: "[{{ install_namespace }}] Retry - Wait for InstallPlans to appear"
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        namespace: "{{ install_namespace }}"
+      register: _install_plans
+      retries: "{{ install_wait_retries }}"
+      delay: "{{ install_wait_delay }}"
+      until: _install_plans.resources | length > 0
+
+    - name: "[{{ install_namespace }}] Retry - Approve install plans that require approval"
+      kubernetes.core.k8s:
+        state: present
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ install_namespace }}"
+        definition:
+          spec:
+            approved: true
+      loop: "{{ _install_plans.resources | default([]) }}"
+      when:
+        - item.status is defined
+        - item.status.phase is defined
+        - item.status.phase == 'RequiresApproval'
+
+- name: "[{{ install_namespace }}] Wait for Subscription currentCSV"
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: Subscription
-    name: "ansible-automation-platform-operator"
-    namespace: "{{ install_namespace_cluster }}"
+    name: "{{ install_operator_name }}"
+    namespace: "{{ install_namespace }}"
   register: sub_info
-
-- name: install | Wait for Subscription to determine the active CSV
-  kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: "ansible-automation-platform-operator"
-    namespace: "{{ install_namespace_cluster }}"
-  register: sub_info
-  # Wait until the Subscription has a status and the currentCSV field is populated
-  until: 
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
+  until:
     - sub_info.resources | length > 0
     - sub_info.resources[0].status is defined
     - sub_info.resources[0].status.currentCSV is defined
     - sub_info.resources[0].status.currentCSV | length > 0
-  retries: 30
-  delay: 10  
 
-- name: install | Set current CSV fact
+- name: "[{{ install_namespace }}] Set current CSV fact"
   ansible.builtin.set_fact:
     current_csv_name: "{{ sub_info.resources[0].status.currentCSV }}"
 
-- name: install | Wait for the CSV resource to be created by OLM
+- name: "[{{ install_namespace }}] Wait for CSV resource to exist"
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
     name: "{{ current_csv_name }}"
-    namespace: "{{ install_namespace_cluster }}"
+    namespace: "{{ install_namespace }}"
   register: csv_info
-  # Ensure the CSV actually exists in the namespace before we try to patch it
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
   until: csv_info.resources | length > 0
-  retries: 30
-  delay: 10
 
-- name: install | Increase resource limits for all Operator deployments in the CSV
+- name: "[{{ install_namespace }}] Patch CSV (controller-manager replicas and container resource limits)"
   ansible.builtin.shell: |-
-    oc get csv {{ current_csv_name }} -n {{ install_namespace_cluster }} -o json |
-    jq '.spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.cpu = "16" | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.memory = "16Gi"' |
-    oc replace -f -
+    oc get csv {{ current_csv_name }} -n {{ install_namespace }} -o json | jq \
+      --argjson r_gateway {{ install_csv_replicas_gateway | int }} \
+      --argjson r_lightspeed {{ install_csv_replicas_lightspeed | int }} \
+      --argjson r_controller {{ install_csv_replicas_controller | int }} \
+      --argjson r_automation_hub {{ install_csv_replicas_automation_hub | int }} \
+      --argjson r_eda {{ install_csv_replicas_eda | int }} \
+      --argjson r_resources {{ install_csv_replicas_resources | int }} \
+      --arg lim_cpu "{{ install_csv_resources_limits_cpu }}" \
+      --arg lim_mem "{{ install_csv_resources_limits_memory }}" \
+      '
+      .spec.install.spec.deployments |= map(
+        if .name == "aap-gateway-operator-controller-manager" then .spec.replicas = $r_gateway
+        elif .name == "ansible-lightspeed-operator-controller-manager" then .spec.replicas = $r_lightspeed
+        elif .name == "automation-controller-operator-controller-manager" then .spec.replicas = $r_controller
+        elif .name == "automation-hub-operator-controller-manager" then .spec.replicas = $r_automation_hub
+        elif .name == "eda-server-operator-controller-manager" then .spec.replicas = $r_eda
+        elif .name == "resource-operator-controller-manager" then .spec.replicas = $r_resources
+        else . end
+      )
+      | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.cpu = $lim_cpu
+      | .spec.install.spec.deployments[].spec.template.spec.containers[].resources.limits.memory = $lim_mem
+      ' | oc replace -f -
   register: csv_patch_status
+  retries: "{{ install_wait_retries }}"
+  delay: "{{ install_wait_delay }}"
+  until: csv_patch_status.rc == 0
   changed_when: csv_patch_status.rc == 0
 
-- name: install | Wait for Operator installation to complete
+- name: "[{{ install_namespace }}] Wait for operator install to complete (CSV Succeeded)"
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ install_namespace }}"
+    label_selectors:
+      - "operators.coreos.com/{{ install_operator_name }}.{{ install_namespace }}"
   register: _aap_operator_details
   retries: "{{ install_wait_retries }}"
   delay: "{{ install_wait_delay }}"
   until:
-    - _aap_operator_details.resources | length > 0 and
-      _aap_operator_details.resources[0].status.phase == "Succeeded"
-  kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: ClusterServiceVersion
-    namespace: "{{ install_namespace_cluster }}"
-    label_selectors:
-      - "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace_cluster }}"
+    - _aap_operator_details.resources | length > 0
+    - _aap_operator_details.resources[0].status is defined
+    - _aap_operator_details.resources[0].status.phase is defined
+    - _aap_operator_details.resources[0].status.phase == "Succeeded"

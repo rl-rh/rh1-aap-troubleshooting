@@ -1,10 +1,19 @@
 ---
-install_namespace_cluster: "aap"
-install_channel: "stable-2.6-cluster-scoped"
-install_catalog_source: "redhat-operators"
-# install_starting_csv: "aap-operator.v2.6.0-0.1764966733"
-install_source_namespace: "openshift-marketplace"
-install_plan_approval: "Automatic"
-install_wait_retries: 10
+
+install_plan_approval: "Manual"
+
+install_wait_retries: 60
+
 install_wait_delay: 30
-install_wait_minutes: 5
+
+# Replicas for embedded operator-controller-manager deployments in the active CSV (by component).
+install_csv_replicas_gateway: 1
+install_csv_replicas_lightspeed: 1
+install_csv_replicas_controller: 1
+install_csv_replicas_automation_hub: 1
+install_csv_replicas_eda: 1
+install_csv_replicas_resources: 1
+
+# Resource limits applied to every container in CSV embedded deployments.
+install_csv_resources_limits_cpu: "16"
+install_csv_resources_limits_memory: "16Gi"

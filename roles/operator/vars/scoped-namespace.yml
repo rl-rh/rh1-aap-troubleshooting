@@ -1,0 +1,7 @@
+---
+
+install_channel: "stable-2.6"
+
+# OwnNamespace: operator watches only the install namespace (required for non–AllNamespaces CSVs).
+install_operator_group_target_namespaces:
+  - "{{ install_namespace }}"

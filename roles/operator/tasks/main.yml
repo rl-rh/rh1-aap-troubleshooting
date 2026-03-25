@@ -1,4 +1,14 @@
 ---
 
+- name: Read in role variables
+  ansible.builtin.include_vars:
+    file: vars/main.yml
+    hash_behaviour: replace
+
+- name: Read in namespace scope variables
+  ansible.builtin.include_vars:
+    file: vars/scoped-{{ install_scope }}.yml
+    hash_behaviour: replace
+
 - name: Import install task
   ansible.builtin.import_tasks: install.yml

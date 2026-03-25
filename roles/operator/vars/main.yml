@@ -1,7 +1,13 @@
 ---
 
-install_operator_name: "ansible-automation-platform-operator"
+# If you need to change the operator version, then change this variable
+install_starting_csv: "aap-operator.v2.6.0-0.1772556720"
 
+
+install_operator_name: "ansible-automation-platform-operator"
 install_operator_labels:
-  - key: "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace_cluster }}"
+  - key: "operators.coreos.com/ansible-automation-platform-operator.{{ install_namespace }}"
     value: ''
+
+install_catalog_source: "redhat-operators"
+install_source_namespace: "openshift-marketplace"

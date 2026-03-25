@@ -1,0 +1,18 @@
+---
+
+install_namespace: "aap"
+
+install_channel: "stable-2.6-cluster-scoped"
+
+install_starting_csv: "aap-operator.v2.6.0-0.1772556740"
+
+# Cluster-scoped channel expects AllNamespaces watch (empty list per OLM OperatorGroup semantics).
+install_operator_group_target_namespaces: []
+
+# Need to set replicas to 1 for cluster-scoped operator
+install_csv_replicas_gateway: 1
+install_csv_replicas_lightspeed: 1
+install_csv_replicas_controller: 1
+install_csv_replicas_automation_hub: 1
+install_csv_replicas_eda: 1
+install_csv_replicas_resources: 1

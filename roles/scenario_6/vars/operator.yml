@@ -1,6 +1,12 @@
 ---
-install_namespace: "{{ project_name }}"
-install_channel: 'stable-2.6'
+
+install_csv_replicas_gateway: 1
+install_csv_replicas_lightspeed: 1
+install_csv_replicas_controller: 1
+install_csv_replicas_automation_hub: 1
+install_csv_replicas_eda: 0
+install_csv_replicas_resources: 0
+
 chatbot_model: granite-3-2-8b-instruct
 chatbot_token: "{{ alia_token }}"
 chatbot_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1

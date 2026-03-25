@@ -1,0 +1,17 @@
+---
+argument_specs:
+  main:
+    short_description: Install the AAP operator via OLM
+    options:
+      install_scope:
+        type: str
+        description: OLM install scope for the operator (cluster- vs namespace-scoped channel/behavior).
+        choices:
+          - cluster
+          - namespace
+        required: true
+      install_namespace:
+        type: str
+        description: Target Kubernetes namespace for operator install resources.
+        required: false
+        default: "ansible-automation-platform"

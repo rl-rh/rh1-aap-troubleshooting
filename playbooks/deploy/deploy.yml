@@ -1,0 +1,49 @@
+---
+
+- name: Prepare Inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    number_of_users: 2
+
+  tasks:
+    - name: Create in-memory hosts for parallel execution
+      ansible.builtin.add_host:
+        name: "user{{ item }}"
+        groups: lab_users
+        ansible_host: 127.0.0.1
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      with_sequence: start=1 end="{{ number_of_users }}"
+
+- name: Parallel Deployment by Scenario
+  hosts: lab_users
+  connection: local
+  gather_facts: false
+  serial: "{{ pb_batch_size | default(omit) }}"
+  strategy: "{{ pb_strategy | default(omit) }}"
+
+  vars:
+    scenarios_list: "{{ (playbook_dir + '/../../roles/') | list_scenarios }}"
+    scope: namespace
+
+  tasks:
+    - name: Debug variables
+      ansible.builtin.debug:
+        var: scenarios_list
+        verbosity: 3
+
+    - name: Install cluster-scoped operator (only on first host)
+      ansible.builtin.include_role:
+        name: operator
+      vars:
+        install_scope: cluster
+      when: scope == 'cluster' and inventory_hostname == groups['lab_users'][0]
+
+    - name: Execute deployment for each scenario
+      ansible.builtin.include_tasks: tasks/process_scenario.yml
+      loop: "{{ scenarios_list }}"
+      loop_control:
+        loop_var: current_scenario
