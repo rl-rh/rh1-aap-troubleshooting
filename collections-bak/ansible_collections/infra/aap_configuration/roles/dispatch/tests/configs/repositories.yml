@@ -1,6 +1,0 @@
----
-hub_ee_repositories:
-  - name: abc123
-    description: string
-    readme: "# My EE repository"
-...
