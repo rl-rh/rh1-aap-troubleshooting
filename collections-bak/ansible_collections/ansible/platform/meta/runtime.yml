@@ -1,0 +1,26 @@
+---
+requires_ansible: ">=2.16.0"
+action_groups:
+  gateway:
+    - application
+    - authenticator
+    - authenticator_map
+    - authenticator_user
+    - http_port
+    - organization
+    - role_user_assignment
+    - role_team_assignment
+    - role_definition
+    - route
+    - service
+    - service_cluster
+    - service_type
+    - service_key
+    - service_node
+    - settings
+    - team
+    - token
+    - ui_plugin_route
+    - user
+    - ca_certificate
+...

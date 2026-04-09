@@ -1,0 +1,58 @@
+objects:
+  role:
+    aap_rules_validation:
+      description: An ansible role which audit the declared AAP configuration and
+        validate it against a set of user-defined rules.
+      name: aap_rules_validation
+      version_added: null
+    filetree_create:
+      description: An Ansible Role to create a local file tree of objects existing
+        in Controller
+      name: filetree_create
+      version_added: null
+    filetree_read:
+      description: An Ansible Role to read from a local file tree and create objects
+        in Controller
+      name: filetree_read
+      version_added: null
+    object_diff:
+      description: An Ansible Role to read from a local file tree and create objects
+        in Controller
+      name: object_diff
+      version_added: null
+    offline_sync:
+      description: An Ansible Role to offline sync collections in Automation Hub.
+      name: offline_sync
+      version_added: null
+    upgrade_config:
+      description: An Ansible Role to migrate configuration files from AAP <= 2.4
+        format to AAP >= 2.5
+      name: upgrade_config
+      version_added: null
+plugins:
+  become: {}
+  cache: {}
+  callback: {}
+  cliconf: {}
+  connection: {}
+  filter: {}
+  httpapi: {}
+  inventory: {}
+  lookup:
+    controller_object_diff:
+      description: Return difference for objects from Controller API
+      name: controller_object_diff
+      version_added: null
+  module:
+    controller_export_diff:
+      description: Compare controller configuration resources with those defined in
+        code.
+      name: controller_export_diff
+      namespace: ''
+      version_added: null
+  netconf: {}
+  shell: {}
+  strategy: {}
+  test: {}
+  vars: {}
+version: 3.0.2

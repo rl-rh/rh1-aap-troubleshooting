@@ -1,0 +1,333 @@
+objects:
+  role:
+    ansible_config:
+      description: An Ansible Role to create ansible.cfg files based on your Automation
+        Hub servers
+      name: ansible_config
+      version_added: null
+    controller_ad_hoc_command:
+      description: An Ansible Role to run a list of ad hoc commands on Ansible Controller.
+      name: controller_ad_hoc_command
+      version_added: null
+    controller_ad_hoc_command_cancel:
+      description: An Ansible Role to cancel a list of ad hoc commands on Ansible
+        Controller.
+      name: controller_ad_hoc_command_cancel
+      version_added: null
+    controller_applications:
+      description: An Ansible Role to create Applications on Ansible Controller.
+      name: controller_applications
+      version_added: null
+    controller_bulk_host_create:
+      description: An Ansible Role to run a list of ad hoc commands on Ansible Controller.
+      name: controller_bulk_host_create
+      version_added: null
+    controller_bulk_job_launch:
+      description: An Ansible Role to run a list of ad hoc commands on Ansible Controller.
+      name: controller_bulk_job_launch
+      version_added: null
+    controller_credential_input_sources:
+      description: An Ansible Role to create Credential Input Sources on Ansible Controller.
+      name: controller_credential_input_sources
+      version_added: null
+    controller_credential_types:
+      description: An Ansible Role to create credential types on Ansible Controller.
+      name: controller_credential_types
+      version_added: null
+    controller_credentials:
+      description: An Ansible Role to create credentials on Ansible Controller.
+      name: controller_credentials
+      version_added: null
+    controller_execution_environments:
+      description: An Ansible Role to create execution environment objects on Ansible
+        Controller.
+      name: controller_execution_environments
+      version_added: null
+    controller_host_groups:
+      description: An Ansible Role to create groups on Ansible Controller.
+      name: controller_host_groups
+      version_added: null
+    controller_hosts:
+      description: An Ansible Role to create hosts on Ansible Controller.
+      name: controller_hosts
+      version_added: null
+    controller_instance_groups:
+      description: An Ansible Role to create instance groups on Ansible Controller.
+      name: controller_instance_groups
+      version_added: null
+    controller_instances:
+      description: An Ansible Role to create instances on Ansible Controller.
+      name: controller_instances
+      version_added: null
+    controller_inventories:
+      description: An Ansible Role to create inventories on Ansible Controller.
+      name: controller_inventories
+      version_added: null
+    controller_inventory_source_update:
+      description: An Ansible Role to update inventory sources on Ansible Controller.
+      name: controller_inventory_source_update
+      version_added: null
+    controller_inventory_sources:
+      description: An Ansible Role to create inventory sources on Ansible Controller.
+      name: controller_inventory_sources
+      version_added: null
+    controller_job_launch:
+      description: An Ansible Role to launch jobs on Ansible Controller.
+      name: controller_job_launch
+      version_added: null
+    controller_job_templates:
+      description: An Ansible Role to create job templates on Ansible Controller.
+      name: controller_job_templates
+      version_added: null
+    controller_jobs_cancel:
+      description: An Ansible Role to cancel a list of jobs on Ansible Controller.
+      name: controller_jobs_cancel
+      version_added: null
+    controller_labels:
+      description: An Ansible Role to create labels on Ansible Controller.
+      name: controller_labels
+      version_added: null
+    controller_license:
+      description: An Ansible Role to deploy a license on Ansible Controller.
+      name: controller_license
+      version_added: null
+    controller_notification_templates:
+      description: An Ansible Role to create notification templates on Ansible Controller.
+      name: controller_notification_templates
+      version_added: null
+    controller_organizations:
+      description: An Ansible Role to create organizations on Ansible Controller.
+      name: controller_organizations
+      version_added: null
+    controller_project_update:
+      description: An Ansible Role to update projects on Ansible Controller.
+      name: controller_project_update
+      version_added: null
+    controller_projects:
+      description: An Ansible Role to create projects on Ansible Controller.
+      name: controller_projects
+      version_added: null
+    controller_roles:
+      description: An Ansible Role to create roles on Ansible Controller.
+      name: controller_roles
+      version_added: null
+    controller_schedules:
+      description: An Ansible Role to create schedules on Ansible Controller.
+      name: controller_schedules
+      version_added: null
+    controller_settings:
+      description: An Ansible Role to create settings on Ansible Controller.
+      name: controller_settings
+      version_added: null
+    controller_teams:
+      description: An Ansible Role to create teams on Ansible Controller.
+      name: controller_teams
+      version_added: null
+    controller_users:
+      description: An Ansible Role to create users on Ansible Controller.
+      name: controller_users
+      version_added: null
+    controller_workflow_job_templates:
+      description: An Ansible Role to create workflow job templates on Ansible Controller.
+      name: controller_workflow_job_templates
+      version_added: null
+    controller_workflow_launch:
+      description: An Ansible Role to launch workflows on Ansible Controller.
+      name: controller_workflow_launch
+      version_added: null
+    dispatch:
+      description: An Ansible Role to call other roles to create objects on Ansible
+        Automation Platform.
+      name: dispatch
+      version_added: null
+    eda_controller_tokens:
+      description: An Ansible Role to create user tokens in EDA controller.
+      name: eda_controller_tokens
+      version_added: null
+    eda_credential_types:
+      description: An Ansible Role to create credentials in EDA controller.
+      name: eda_credential_types
+      version_added: null
+    eda_credentials:
+      description: An Ansible Role to create credentials in EDA controller.
+      name: eda_credentials
+      version_added: null
+    eda_decision_environments:
+      description: An Ansible Role to create decision environments in EDA controller.
+      name: eda_decision_environments
+      version_added: null
+    eda_event_streams:
+      description: An Ansible Role to create event streams in EDA controller.
+      name: eda_event_streams
+      version_added: null
+    eda_projects:
+      description: An Ansible Role to create projects in EDA controller.
+      name: eda_projects
+      version_added: null
+    eda_rulebook_activations:
+      description: An Ansible Role to create rulebook activations in EDA controller.
+      name: eda_rulebook_activations
+      version_added: null
+    eda_users:
+      description: An Ansible Role to create users in EDA controller.
+      name: eda_users
+      version_added: null
+    gateway_applications:
+      description: An Ansible Role to create Applications on Ansible gateway.
+      name: gateway_applications
+      version_added: null
+    gateway_authenticator_maps:
+      description: An Ansible Role to create authenticator maps on automation platform
+        gateway.
+      name: gateway_authenticator_maps
+      version_added: null
+    gateway_authenticators:
+      description: An Ansible Role to create authenticators on automation platform
+        gateway.
+      name: gateway_authenticators
+      version_added: null
+    gateway_http_ports:
+      description: An Ansible Role to create http ports on automation platform gateway.
+      name: gateway_http_ports
+      version_added: null
+    gateway_organizations:
+      description: An Ansible Role to create organizations on automation platform
+        gateway.
+      name: gateway_organizations
+      version_added: null
+    gateway_role_definitions:
+      description: An Ansible Role to create role_definitions on Ansible gateway for
+        AAP 2.6+.
+      name: gateway_role_definitions
+      version_added: null
+    gateway_role_team_assignments:
+      description: An Ansible Role to create role_team_assignments on Ansible gateway
+        for AAP 2.6+.
+      name: gateway_role_team_assignments
+      version_added: null
+    gateway_role_user_assignments:
+      description: An Ansible Role to create role_user_assignments on Ansible gateway.
+      name: gateway_role_user_assignments
+      version_added: null
+    gateway_routes:
+      description: An Ansible Role to create service nodes on automation platform
+        gateway.
+      name: gateway_routes
+      version_added: null
+    gateway_service_clusters:
+      description: An Ansible Role to create service clusters on automation platform
+        gateway.
+      name: gateway_service_clusters
+      version_added: null
+    gateway_service_keys:
+      description: An Ansible Role to create service keys on automation platform gateway.
+      name: gateway_service_keys
+      version_added: null
+    gateway_service_nodes:
+      description: An Ansible Role to create service nodes on automation platform
+        gateway.
+      name: gateway_service_nodes
+      version_added: null
+    gateway_services:
+      description: An Ansible Role to create services on automation platform gateway.
+      name: gateway_services
+      version_added: null
+    gateway_settings:
+      description: An Ansible Role to create settings on automation platform gateway.
+      name: gateway_settings
+      version_added: null
+    gateway_teams:
+      description: An Ansible Role to create teams on automation platform gateway.
+      name: gateway_teams
+      version_added: null
+    gateway_users:
+      description: An Ansible Role to create users on automation platform gateway.
+      name: gateway_users
+      version_added: null
+    hub_collection:
+      description: An Ansible Role to update, or destroy Automation Hub Collections.
+      name: hub_collection
+      version_added: null
+    hub_collection_remote:
+      description: An Ansible Role to create collection remotes in Automation Hub.
+      name: hub_collection_remote
+      version_added: null
+    hub_collection_repository:
+      description: An Ansible Role to create collection remotes in Automation Hub.
+      name: hub_collection_repository
+      version_added: null
+    hub_collection_repository_sync:
+      description: An Ansible Role to create collection remotes in Automation Hub.
+      name: hub_collection_repository_sync
+      version_added: null
+    hub_ee_image:
+      description: An Ansible Role to create execution environment images in Automation
+        Hub.
+      name: hub_ee_image
+      version_added: null
+    hub_ee_registry:
+      description: An Ansible Role to create execution environment registry in Automation
+        Hub.
+      name: hub_ee_registry
+      version_added: null
+    hub_ee_registry_index:
+      description: An Ansible Role to index execution environment registries in Automation
+        Hub.
+      name: hub_ee_registry_index
+      version_added: null
+    hub_ee_registry_sync:
+      description: An Ansible Role to sync execution environment registries in Automation
+        Hub.
+      name: hub_ee_registry_sync
+      version_added: null
+    hub_ee_repository:
+      description: An Ansible Role to create execution environment repositories in
+        Automation Hub.
+      name: hub_ee_repository
+      version_added: null
+    hub_ee_repository_sync:
+      description: An Ansible Role to sync execution environment repositories in Automation
+        Hub.
+      name: hub_ee_repository_sync
+      version_added: null
+    hub_group:
+      description: An Ansible Role to create groups in Automation Hub.
+      name: hub_group
+      version_added: null
+    hub_group_roles:
+      description: An Ansible Role to create groups roles in Automation Hub.
+      name: hub_group_roles
+      version_added: null
+    hub_namespace:
+      description: An Ansible Role to create namespaces in Automation Hub.
+      name: hub_namespace
+      version_added: null
+    hub_publish:
+      description: An Ansible Role to publish collections in Automation Hub.
+      name: hub_publish
+      version_added: null
+    hub_role:
+      description: An Ansible Role to create role permissions in Automation Hub.
+      name: hub_role
+      version_added: null
+    hub_user:
+      description: An Ansible Role to create users in Automation Hub.
+      name: hub_user
+      version_added: null
+plugins:
+  become: {}
+  cache: {}
+  callback: {}
+  cliconf: {}
+  connection: {}
+  filter: {}
+  httpapi: {}
+  inventory: {}
+  lookup: {}
+  module: {}
+  netconf: {}
+  shell: {}
+  strategy: {}
+  test: {}
+  vars: {}
+version: 3.8.3

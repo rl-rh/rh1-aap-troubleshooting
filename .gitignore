@@ -1,4 +1,5 @@
 collections/ansible_collections
+collections-bak/ansible_collections
 .vscode/settings.json
 .ansible
 

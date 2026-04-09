@@ -1,0 +1,13 @@
+---
+
+# These are the default variables common to most hub_configuration and _utilities roles
+# You shouldn't need to define them again and again but they should be defined
+# aap_hostname: "{{ inventory_hostname }}"
+# aap_oauthtoken: ""
+# aap_validate_certs: false
+
+hub_configuration_working_dir: /var/tmp/hub_offline_sync
+hub_configuration_no_deps: false
+# hub_overwrite_existing: false
+
+...

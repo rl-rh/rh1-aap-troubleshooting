@@ -1,0 +1,31 @@
+ancestor: null
+releases:
+  1.0.0:
+    changes:
+      release_summary: This is the major release of the ``ansible.hub`` collection.
+    fragments:
+    - release.yml
+    release_date: '2024-09-23'
+  1.0.1:
+    changes:
+      minor_changes:
+      - added additional options for authentication to match controller credential
+        type updates.
+    fragments:
+    - argument_vars.yml
+    release_date: '2025-08-18'
+  1.0.2:
+    changes:
+      bugfixes:
+      - Fixed an issue where an incompatibility message was indicating the incorrect
+        version.
+    fragments:
+    - fix-error-msg.yml
+    release_date: '2025-09-17'
+  1.0.3:
+    changes:
+      bugfixes:
+      - Fixed an issue where an incompatibility message was too restrictive.
+    fragments:
+    - fix-error.msg.yml
+    release_date: '2025-10-22'

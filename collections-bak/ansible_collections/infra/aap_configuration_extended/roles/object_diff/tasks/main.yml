@@ -1,0 +1,30 @@
+---
+# tasks file for object_diff
+- name: "Retrieve Ansible Tower or Automation Platform version"
+  ansible.builtin.assert:
+    that:
+      - "aap_version is version('2.5', '>=')"
+    fail_msg: "This role is only supported on AAP 2.5+. Use infra.controller_configuration.object_diff for earlier AAP/Ansible Tower versions."
+  vars:
+    aap_version: >-
+      {{
+        lookup(
+          'ansible.platform.gateway_api',
+          'api/gateway/v1/ping',
+          host=aap_hostname,
+          oauth_token=aap_oauthtoken,
+          verify_ssl=aap_validate_certs
+        ).version
+      }}
+
+- name: "Include Tasks to get OBJECT DIFF"
+  ansible.builtin.include_tasks: "{{ __task_diff.name }}.yml"
+  args:
+    apply:
+      tags: "{{ __task_diff.tags }}"
+  tags:
+    - always
+  loop: "{{ controller_configuration_object_diff_tasks }}"
+  loop_control:
+    loop_var: __task_diff
+...
